@@ -98,12 +98,12 @@ func MigrateSchema(db *gorm.DB) error {
 	// Nota: En PostgreSQL, esto requiere una migración SQL específica.
 	// Aquí usamos el enfoque básico de GORM, pero para producción debería usarse migración SQL.
 
-	// Migrar modelos
+	// Migrar modelos en orden específico para evitar problemas de FK
 	err := db.AutoMigrate(
-		&models.User{},
-		&models.Product{},
-		&models.Order{},
-		&models.OrderItem{},
+		&models.User{},     // Primero los usuarios (independiente)
+		&models.Product{},  // Luego productos (independiente)
+		&models.Order{},    // Órdenes (depende de User)
+		&models.OrderItem{}, // Items de orden (depende de Order y Product)
 	)
 	if err != nil {
 		return fmt.Errorf("error al migrar esquema: %w", err)
