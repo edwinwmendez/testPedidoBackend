@@ -52,38 +52,60 @@ git push -u origin main
    - **Dockerfile Path**: `./Dockerfile.render`
    - **Branch**: `main`
 
-### 3. **Variables de Entorno en Render**
+### 3. **Variables de Entorno en Render (CONFIGURACIÓN SEGURA)**
 
-En el dashboard de tu servicio, agrega estas variables:
+⚠️ **IMPORTANTE DE SEGURIDAD**: NUNCA subas credenciales a GitHub. Configura todas las variables sensibles **SOLO** en el Dashboard de Render.
 
+En el dashboard de tu servicio, ve a la pestaña "Environment" y agrega estas variables una por una:
+
+#### **Variables OBLIGATORIAS (configurar manualmente):**
 ```env
-# Base de datos (OBLIGATORIO)
-DATABASE_URL=postgresql://edwin:6nXW48kpjNnnAVBXzf7m5DkQIkZtdCxe@dpg-d1a4gvaeli5vc71apeh0g-a.oregon-postgres.render.com/tienda_mendez_db
+# Base de datos (CRÍTICO - NUNCA en GitHub)
+DATABASE_URL
+postgresql://edwin:6nXW48kpjNnnAVBXzf7m5DkQIkZtdCxe@dpg-d1a4gvaeli5vc71apeh0g-a.oregon-postgres.render.com/tienda_mendez_db
 
-# JWT (OBLIGATORIO) - Genera un secret fuerte
-JWT_SECRET=tu-secret-super-seguro-de-256-bits-aqui
+# JWT Secret (CRÍTICO - usar "Generate Value")
+JWT_SECRET
+[Hacer clic en "Generate Value" para crear automáticamente]
+```
 
-# Configuración JWT
+#### **Variables de configuración (seguras para el blueprint):**
+
+#### **Variables de configuración (seguras para el blueprint):**
+```env
+# Configuración JWT (seguras - ya en render.yaml)
 JWT_ACCESS_TOKEN_EXP=15m
 JWT_REFRESH_TOKEN_EXP=7d
 
-# Configuración del servidor
+# Configuración del servidor (seguras - ya en render.yaml)
 SERVER_HOST=0.0.0.0
 SERVER_READ_TIMEOUT=5s
 SERVER_WRITE_TIMEOUT=10s
 SERVER_IDLE_TIMEOUT=120s
 
-# Configuración del negocio
+# Configuración del negocio (seguras - ya en render.yaml)
 BUSINESS_HOURS_START=6
 BUSINESS_HOURS_END=20
 TIMEZONE=America/Lima
 
-# Identificador de entorno
+# Identificador de entorno (seguro - ya en render.yaml)
 RENDER=true
 
-# Firebase (opcional)
+# Firebase opcional (no sensible - ya en render.yaml)
 FIREBASE_PROJECT_ID=exactogas-app
 ```
+
+### 🔒 **PASOS DE CONFIGURACIÓN SEGURA:**
+
+1. **Deployment inicial**:
+   - Render creará el servicio con las variables no-sensibles del `render.yaml`
+   - Las variables sensibles (DATABASE_URL, JWT_SECRET) estarán faltando
+
+2. **Configurar variables sensibles**:
+   - Ve al Dashboard → Tu servicio → "Environment"
+   - Agrega manualmente `DATABASE_URL` con tu credencial completa
+   - Para `JWT_SECRET`: haz clic en "Generate Value" 
+   - Guarda y redeploya automáticamente
 
 ## 🔗 URLs de tu API
 

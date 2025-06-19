@@ -15,9 +15,9 @@ services:
     
     # Variables de entorno
     envVars:
-      # Base de datos (usar tu DATABASE_URL externa)
-      - key: DATABASE_URL
-        value: postgresql://edwin:6nXW48kpjNnnAVBXzf7m5DkQIkZtdCxe@dpg-d1a4gvaeli5vc71apeh0g-a.oregon-postgres.render.com/tienda_mendez_db
+      # Base de datos - CONFIGURAR MANUALMENTE EN RENDER DASHBOARD
+      # NO incluir credenciales aquí por seguridad
+      # DATABASE_URL se configurará en el dashboard de Render
       
       # JWT Secret (generar uno nuevo y fuerte)
       - key: JWT_SECRET

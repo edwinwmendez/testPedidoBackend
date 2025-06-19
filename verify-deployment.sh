@@ -101,6 +101,32 @@ fi
 CHECKS=$((CHECKS + 1))
 
 echo ""
+echo "🔒 Verificando seguridad..."
+
+# Verificar que no hay credenciales en archivos que van a Git
+echo "Buscando credenciales expuestas..."
+# Buscar credenciales reales (no ejemplos/plantillas)
+if grep -r "postgresql://.*@dpg-" . --exclude-dir=.git --exclude="*.md" 2>/dev/null | grep -v "user:password" | grep -v "example"; then
+    echo -e "${RED}❌ PELIGRO: Credenciales reales encontradas en archivos de código${NC}"
+    echo "   Revisa y remueve antes de hacer commit"
+    CHECKS=$((CHECKS + 1))
+else
+    echo -e "${GREEN}✅ No se encontraron credenciales reales expuestas${NC}"
+    PASSED=$((PASSED + 1))
+    CHECKS=$((CHECKS + 1))
+fi
+
+# Verificar .gitignore incluye archivos sensibles
+if grep -q "app\.env" .gitignore 2>/dev/null && grep -q "\.env" .gitignore 2>/dev/null; then
+    echo -e "${GREEN}✅ .gitignore configurado correctamente${NC}"
+    PASSED=$((PASSED + 1))
+else
+    echo -e "${RED}❌ .gitignore no protege archivos sensibles${NC}"
+    echo "   Agrega: app.env y .env al .gitignore"
+fi
+CHECKS=$((CHECKS + 1))
+
+echo ""
 echo "🌐 Verificando configuración de Render..."
 
 # Verificar que DATABASE_URL esté configurada en app.env.production
