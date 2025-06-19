@@ -1,0 +1,34 @@
+# Archivos del sistema
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Archivos temporales
+*.tmp
+*.temp
+*.log
+
+# Archivos de desarrollo
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Archivos de configuración local
+.env
+app.env
+
+# Archivos binarios
+*.o
+*.a
+*.so
+*.exe
+
+# Directorios de build
+build/
+dist/
+target/
