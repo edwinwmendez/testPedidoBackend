@@ -22,7 +22,7 @@ func SetupRoutes(app *fiber.App, authService auth.Service, userService *services
 
 	// Rutas de autenticación
 	authHandler := handlers.NewAuthHandler(authService)
-	authHandler.RegisterRoutes(api)
+	authHandler.RegisterRoutes(api, authMiddleware, adminOnly)
 
 	// Rutas de usuarios
 	userHandler := handlers.NewUserHandler(userService)

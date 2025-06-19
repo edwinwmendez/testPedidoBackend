@@ -238,11 +238,14 @@ func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 }
 
 // RegisterRoutes registra las rutas del manejador de autenticación
-func (h *AuthHandler) RegisterRoutes(router fiber.Router) {
+func (h *AuthHandler) RegisterRoutes(router fiber.Router, authMiddleware, adminOnly fiber.Handler) {
 	authGroup := router.Group("/auth")
 
-	authGroup.Post("/register", h.RegisterUser)
+	// Rutas públicas (sin autenticación)
 	authGroup.Post("/login", h.Login)
 	authGroup.Post("/refresh", h.RefreshToken)
-	authGroup.Post("/logout", h.Logout)
+	
+	// Rutas protegidas - solo administradores pueden crear usuarios
+	authGroup.Post("/register", authMiddleware, adminOnly, h.RegisterUser)
+	authGroup.Post("/logout", authMiddleware, h.Logout)
 }
