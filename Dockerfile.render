@@ -21,6 +21,12 @@ RUN go mod verify
 # Copiar código fuente
 COPY . .
 
+# Instalar swag para generar documentación Swagger
+RUN go install github.com/swaggo/swag/cmd/swag@latest
+
+# Generar documentación Swagger
+RUN swag init -g main.go --output ./docs
+
 # Compilar aplicación con optimizaciones para Render
 # -tags netgo: usar implementación nativa de Go para networking
 # -ldflags '-s -w': strip debug info y symbol table para menor tamaño
