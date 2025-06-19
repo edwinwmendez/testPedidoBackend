@@ -98,16 +98,23 @@ func MigrateSchema(db *gorm.DB) error {
 	// Nota: En PostgreSQL, esto requiere una migración SQL específica.
 	// Aquí usamos el enfoque básico de GORM, pero para producción debería usarse migración SQL.
 
-	// Migrar modelos en orden específico para evitar problemas de FK
-	err := db.AutoMigrate(
-		&models.User{},     // Primero los usuarios (independiente)
-		&models.Product{},  // Luego productos (independiente)
-		&models.Order{},    // Órdenes (depende de User)
-		&models.OrderItem{}, // Items de orden (depende de Order y Product)
-	)
+	// Deshabilitar temporalmente la creación automática de FK para evitar problemas
+	db.DisableForeignKeyConstraintWhenMigrating = true
+	
+	// Migrar tablas base primero (sin relaciones)
+	err := db.AutoMigrate(&models.User{}, &models.Product{})
 	if err != nil {
-		return fmt.Errorf("error al migrar esquema: %w", err)
+		return fmt.Errorf("error al migrar tablas base: %w", err)
 	}
+	
+	// Luego migrar tablas con relaciones
+	err = db.AutoMigrate(&models.Order{}, &models.OrderItem{})
+	if err != nil {
+		return fmt.Errorf("error al migrar tablas con relaciones: %w", err)
+	}
+	
+	// Habilitar nuevamente las FK para operaciones futuras
+	db.DisableForeignKeyConstraintWhenMigrating = false
 
 	log.Println("Migración del esquema completada exitosamente")
 	return nil
