@@ -3,7 +3,6 @@ package v1
 import (
 	"backend/api/v1/handlers"
 	"backend/api/v1/middlewares"
-	"backend/database"
 	"backend/internal/auth"
 	"backend/internal/models"
 	"backend/internal/services"
@@ -45,12 +44,4 @@ func SetupRoutes(app *fiber.App, authService auth.Service, userService *services
 		})
 	})
 
-	// Endpoint temporal para verificar tablas (REMOVER EN PRODUCCIÓN)
-	api.Get("/debug/tables", func(c *fiber.Ctx) error {
-		var tables []string
-		if err := database.DB.Raw("SELECT tablename FROM pg_tables WHERE schemaname = 'public'").Scan(&tables).Error; err != nil {
-			return c.Status(500).JSON(fiber.Map{"error": err.Error()})
-		}
-		return c.JSON(fiber.Map{"tables": tables})
-	})
 }
