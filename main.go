@@ -30,7 +30,7 @@ func main() {
 	docs.SwaggerInfo.Title = "ExactoGas API"
 	docs.SwaggerInfo.Description = "API para la aplicación de gestión de pedidos de gas a domicilio ExactoGas"
 	docs.SwaggerInfo.Version = "1.0"
-
+	
 	// Configurar host dinámicamente para Render.com
 	if os.Getenv("RENDER") == "true" {
 		docs.SwaggerInfo.Host = "" // Render maneja esto automáticamente

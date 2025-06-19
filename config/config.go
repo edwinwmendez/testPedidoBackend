@@ -72,20 +72,16 @@ func LoadConfig() (*Config, error) {
 		}
 	}
 
-	// Configurar Viper
-	viper.SetConfigName("app")
-	viper.SetConfigType("env")
-	viper.AddConfigPath(".")
-	viper.AddConfigPath("./config")
-	viper.AddConfigPath("../")
+	// Configurar Viper para usar solo variables de entorno
 	viper.AutomaticEnv()
-
-	// Cargar configuración
-	if err := viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
-			return nil, fmt.Errorf("error al leer el archivo de configuración: %w", err)
+	
+	// Solo intentar leer archivo si existe y es readable
+	if _, err := os.Stat("app.env"); err == nil {
+		viper.SetConfigFile("app.env")
+		if err := viper.ReadInConfig(); err != nil {
+			// Log pero no fallar - las variables de entorno son suficientes
+			log.Printf("Advertencia: No se pudo leer app.env: %v", err)
 		}
-		log.Println("No se encontró archivo de configuración, usando variables de entorno")
 	}
 
 	// Establecer valores por defecto

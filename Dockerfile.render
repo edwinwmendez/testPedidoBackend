@@ -18,8 +18,14 @@ RUN go mod download
 # Verificar dependencias
 RUN go mod verify
 
-# Copiar código fuente
-COPY . .
+# Copiar código fuente específicamente (evitar archivos binarios)
+COPY main.go ./
+COPY api ./api/
+COPY config ./config/
+COPY database ./database/
+COPY internal ./internal/
+COPY pkg ./pkg/
+COPY migrations ./migrations/
 
 # Instalar swag para generar documentación Swagger
 RUN go install github.com/swaggo/swag/cmd/swag@latest
@@ -50,6 +56,9 @@ COPY --from=builder /app/app .
 
 # Copiar directorio docs para Swagger (si existe)
 COPY --from=builder /app/docs ./docs
+
+# Asegurar que no haya archivos binarios en docs
+RUN find ./docs -type f -executable -delete || true
 
 # Cambiar ownership al usuario no-root
 RUN chown -R appuser:appgroup /app
