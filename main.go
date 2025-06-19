@@ -11,7 +11,7 @@ import (
 	v1 "backend/api/v1"
 	"backend/config"
 	"backend/database"
-	_ "backend/docs" // Import para Swagger (solo si existe)
+	"backend/docs"
 	"backend/internal/auth"
 	"backend/internal/repositories"
 	"backend/internal/services"
@@ -22,44 +22,24 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	fiberSwagger "github.com/swaggo/fiber-swagger"
-	"github.com/swaggo/swag"
 )
-
-// setupSwagger configura la documentación Swagger de forma segura
-func setupSwagger() {
-	// Configurar información básica de Swagger
-	swag.Register("swagger", &swag.Spec{
-		Version:          "1.0",
-		Host:             getSwaggerHost(),
-		BasePath:         "/api/v1",
-		Schemes:          getSwaggerSchemes(),
-		Title:            "ExactoGas API",
-		Description:      "API para la aplicación de gestión de pedidos de gas a domicilio ExactoGas",
-		InfoInstanceName: "swagger",
-		SwaggerTemplate:  "", // Se carga automáticamente si existe
-	})
-}
-
-// getSwaggerHost retorna el host apropiado para Swagger
-func getSwaggerHost() string {
-	if os.Getenv("RENDER") == "true" {
-		return "" // Render maneja esto automáticamente
-	}
-	return "localhost:8080"
-}
-
-// getSwaggerSchemes retorna los esquemas apropiados para Swagger
-func getSwaggerSchemes() []string {
-	if os.Getenv("RENDER") == "true" {
-		return []string{"https"}
-	}
-	return []string{"http"}
-}
 
 // ... comentarios Swagger ...
 func main() {
-	// Inicializar configuración de Swagger (sin dependencia de docs package)
-	setupSwagger()
+	// Inicializar Swagger
+	docs.SwaggerInfo.Title = "ExactoGas API"
+	docs.SwaggerInfo.Description = "API para la aplicación de gestión de pedidos de gas a domicilio ExactoGas"
+	docs.SwaggerInfo.Version = "1.0"
+
+	// Configurar host dinámicamente para Render.com
+	if os.Getenv("RENDER") == "true" {
+		docs.SwaggerInfo.Host = "" // Render maneja esto automáticamente
+		docs.SwaggerInfo.Schemes = []string{"https"}
+	} else {
+		docs.SwaggerInfo.Host = "localhost:8080"
+		docs.SwaggerInfo.Schemes = []string{"http"}
+	}
+	docs.SwaggerInfo.BasePath = "/api/v1"
 
 	// Cargar configuración
 	cfg, err := config.LoadConfig()
@@ -145,22 +125,7 @@ func main() {
 		return c.Redirect("/swagger/index.html")
 	})
 	app.Get("/swagger/doc.json", func(c *fiber.Ctx) error {
-		// Intentar leer la documentación Swagger desde archivo si existe
-		if _, err := os.Stat("./docs/swagger.json"); err == nil {
-			return c.SendFile("./docs/swagger.json")
-		}
-		// Fallback a respuesta básica
-		return c.JSON(map[string]interface{}{
-			"swagger": "2.0",
-			"info": map[string]interface{}{
-				"title":       "ExactoGas API",
-				"description": "API para la aplicación de gestión de pedidos de gas a domicilio ExactoGas",
-				"version":     "1.0",
-			},
-			"host":     getSwaggerHost(),
-			"basePath": "/api/v1",
-			"schemes":  getSwaggerSchemes(),
-		})
+		return c.JSON(docs.SwaggerInfo.ReadDoc())
 	})
 	app.Get("/swagger/index.html", func(c *fiber.Ctx) error {
 		c.Set("Content-Type", "text/html")
