@@ -467,6 +467,16 @@ func (h *UserHandler) DeactivateUserAdmin(c *fiber.Ctx) error {
 				"error": "Usuario no encontrado",
 			})
 		}
+		if err == services.ErrCannotDeactivateAdmin {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"error": "No se puede desactivar un usuario administrador por motivos de seguridad",
+			})
+		}
+		if err == services.ErrCannotDeactivateSelf {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"error": "No puedes desactivarte a ti mismo",
+			})
+		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Error al desactivar el usuario",
 		})

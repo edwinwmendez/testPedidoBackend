@@ -12,6 +12,8 @@ var (
 	ErrUserNotFoundService = errors.New("usuario no encontrado")
 	ErrEmailAlreadyExists  = errors.New("el correo electrónico ya está en uso")
 	ErrPhoneAlreadyExists  = errors.New("el número de teléfono ya está en uso")
+	ErrCannotDeactivateAdmin = errors.New("no se puede desactivar un usuario administrador")
+	ErrCannotDeactivateSelf  = errors.New("no puedes desactivarte a ti mismo")
 )
 
 // UserService maneja la lógica de negocio relacionada con usuarios
@@ -157,15 +159,29 @@ func (s *UserService) ActivateUser(userID string, adminID string) error {
 	return nil
 }
 
-// DeactivateUser desactiva un usuario
+// DeactivateUser desactiva un usuario con validaciones de seguridad
 func (s *UserService) DeactivateUser(userID string, adminID string) error {
-	log.Printf("Admin %s desactivando usuario: %s", adminID, userID)
+	log.Printf("Admin %s intentando desactivar usuario: %s", adminID, userID)
 	
+	// Obtener el usuario a desactivar
 	user, err := s.repo.FindByID(userID)
 	if err != nil {
 		return ErrUserNotFoundService
 	}
 
+	// VALIDACIÓN 1: No se puede desactivar un administrador
+	if user.UserRole == models.UserRoleAdmin {
+		log.Printf("❌ Intento de desactivar administrador bloqueado: %s", userID)
+		return ErrCannotDeactivateAdmin
+	}
+
+	// VALIDACIÓN 2: Un admin no puede desactivarse a sí mismo
+	if userID == adminID {
+		log.Printf("❌ Intento de autodesactivación bloqueado: %s", adminID)
+		return ErrCannotDeactivateSelf
+	}
+
+	// Si pasa todas las validaciones, proceder con la desactivación
 	user.IsActive = false
 	err = s.repo.Update(user)
 	if err != nil {
@@ -173,7 +189,7 @@ func (s *UserService) DeactivateUser(userID string, adminID string) error {
 		return err
 	}
 
-	log.Printf("Usuario %s desactivado exitosamente por admin %s", userID, adminID)
+	log.Printf("✅ Usuario %s desactivado exitosamente por admin %s", userID, adminID)
 	return nil
 }
 
