@@ -174,7 +174,13 @@ func parseAndSetDatabaseURL(databaseURL string) error {
 
 	// Extraer componentes de la URL
 	viper.Set("DB_HOST", parsedURL.Hostname())
-	viper.Set("DB_PORT", parsedURL.Port())
+	
+	// Establecer puerto por defecto si no se especifica
+	port := parsedURL.Port()
+	if port == "" {
+		port = "5432" // Puerto por defecto de PostgreSQL
+	}
+	viper.Set("DB_PORT", port)
 	viper.Set("DB_USER", parsedURL.User.Username())
 	
 	if password, ok := parsedURL.User.Password(); ok {
