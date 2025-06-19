@@ -1,0 +1,62 @@
+# Render Blueprint alternativo para ExactoGas API
+# Usando build nativo de Go (más rápido que Docker)
+
+services:
+  - type: web
+    name: exactogas-api-native
+    runtime: go
+    plan: free
+    region: oregon
+    branch: main
+    
+    # Comandos de build y start
+    buildCommand: ./build.sh
+    startCommand: ./start.sh
+    
+    # Variables de entorno
+    envVars:
+      # Base de datos
+      - key: DATABASE_URL
+        value: postgresql://edwin:6nXW48kpjNnnAVBXzf7m5DkQIkZtdCxe@dpg-d1a4gvaeli5vc71apeh0g-a.oregon-postgres.render.com/tienda_mendez_db
+      
+      # JWT Secret
+      - key: JWT_SECRET
+        generateValue: true
+      
+      # Configuración JWT
+      - key: JWT_ACCESS_TOKEN_EXP
+        value: 15m
+      - key: JWT_REFRESH_TOKEN_EXP
+        value: 7d
+      
+      # Configuración servidor
+      - key: SERVER_HOST
+        value: 0.0.0.0
+      - key: SERVER_READ_TIMEOUT
+        value: 5s
+      - key: SERVER_WRITE_TIMEOUT
+        value: 10s
+      - key: SERVER_IDLE_TIMEOUT
+        value: 120s
+      
+      # Configuración aplicación
+      - key: BUSINESS_HOURS_START
+        value: "6"
+      - key: BUSINESS_HOURS_END
+        value: "20"
+      - key: TIMEZONE
+        value: America/Lima
+      
+      # Identificador entorno
+      - key: RENDER
+        value: "true"
+      
+      # Firebase opcional
+      - key: FIREBASE_PROJECT_ID
+        value: exactogas-app
+    
+    # Health check
+    healthCheckPath: /api/v1/health
+    
+    # Auto deploy
+    autoDeploy: true

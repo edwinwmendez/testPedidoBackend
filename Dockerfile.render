@@ -1,0 +1,62 @@
+# Dockerfile optimizado para Render.com
+# Basado en las mejores prácticas de deployment de Go en Render
+
+FROM golang:1.23-alpine AS builder
+
+# Instalar dependencias de build
+RUN apk add --no-cache git
+
+# Establecer directorio de trabajo
+WORKDIR /app
+
+# Copiar archivos de dependencias primero (para aprovechar layer caching)
+COPY go.mod go.sum ./
+
+# Descargar dependencias
+RUN go mod download
+
+# Verificar dependencias
+RUN go mod verify
+
+# Copiar código fuente
+COPY . .
+
+# Compilar aplicación con optimizaciones para Render
+# -tags netgo: usar implementación nativa de Go para networking
+# -ldflags '-s -w': strip debug info y symbol table para menor tamaño
+RUN CGO_ENABLED=0 GOOS=linux go build -tags netgo -ldflags '-s -w' -o app .
+
+# Imagen final minimalista
+FROM alpine:latest
+
+# Instalar certificados SSL necesarios para conexiones HTTPS
+RUN apk --no-cache add ca-certificates
+
+# Crear usuario no-root para seguridad
+RUN addgroup -g 1001 -S appgroup && \
+    adduser -u 1001 -S appuser -G appgroup
+
+# Establecer directorio de trabajo
+WORKDIR /app
+
+# Copiar binario compilado
+COPY --from=builder /app/app .
+
+# Copiar directorio docs para Swagger (si existe)
+COPY --from=builder /app/docs ./docs
+
+# Cambiar ownership al usuario no-root
+RUN chown -R appuser:appgroup /app
+
+# Cambiar a usuario no-root
+USER appuser
+
+# Exponer puerto (Render asigna dinámicamente)
+EXPOSE 8080
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD wget --quiet --tries=1 --spider http://localhost:${PORT:-8080}/api/v1/health || exit 1
+
+# Ejecutar aplicación
+CMD ["./app"]

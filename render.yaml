@@ -1,0 +1,69 @@
+# Render Blueprint para ExactoGas API
+# Infrastructure as Code para deployment automatizado
+
+services:
+  - type: web
+    name: exactogas-api
+    runtime: docker
+    plan: free  # Cambiar a starter o standard según necesidades
+    dockerfilePath: ./Dockerfile.render
+    region: oregon  # Misma región que tu base de datos
+    branch: main  # Auto-deploy desde main branch
+    
+    # Build configuración
+    buildCommand: echo "Using Docker build"
+    
+    # Variables de entorno
+    envVars:
+      # Base de datos (usar tu DATABASE_URL externa)
+      - key: DATABASE_URL
+        value: postgresql://edwin:6nXW48kpjNnnAVBXzf7m5DkQIkZtdCxe@dpg-d1a4gvaeli5vc71apeh0g-a.oregon-postgres.render.com/tienda_mendez_db
+      
+      # JWT Secret (generar uno nuevo y fuerte)
+      - key: JWT_SECRET
+        generateValue: true  # Render generará automáticamente
+      
+      # Configuración de JWT
+      - key: JWT_ACCESS_TOKEN_EXP
+        value: 15m
+      - key: JWT_REFRESH_TOKEN_EXP
+        value: 7d
+      
+      # Configuración del servidor
+      - key: SERVER_HOST
+        value: 0.0.0.0
+      - key: SERVER_READ_TIMEOUT
+        value: 5s
+      - key: SERVER_WRITE_TIMEOUT
+        value: 10s
+      - key: SERVER_IDLE_TIMEOUT
+        value: 120s
+      
+      # Configuración de la aplicación
+      - key: BUSINESS_HOURS_START
+        value: "6"
+      - key: BUSINESS_HOURS_END
+        value: "20"
+      - key: TIMEZONE
+        value: America/Lima
+      
+      # Variable para identificar entorno Render
+      - key: RENDER
+        value: "true"
+      
+      # Configuración de Firebase (opcional)
+      - key: FIREBASE_PROJECT_ID
+        value: exactogas-app
+    
+    # Health check
+    healthCheckPath: /api/v1/health
+    
+    # Auto deploy configuración
+    autoDeploy: true
+
+# Si quisieras crear una nueva base de datos en Render (opcional)
+# databases:
+#   - name: exactogas-db
+#     databaseName: exactogas
+#     user: exactogas
+#     plan: free

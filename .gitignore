@@ -1,0 +1,78 @@
+# Archivos de build y binarios
+app
+main
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Archivos de test
+*.test
+*.out
+coverage.out
+
+# Archivos de configuración locales
+app.env
+.env
+.env.local
+.env.production
+
+# Logs
+*.log
+backend.log
+logs/
+
+# Archivos temporales del OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDEs y editores
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Dependencias
+vendor/
+
+# Archivos de Firebase
+config/firebase-credentials.json
+firebase-credentials.json
+
+# Documentación generada (se regenera en build)
+docs/docs.go
+docs/swagger.json
+docs/swagger.yaml
+
+# Archivos de test y desarrollo
+*.test.db
+test.db
+database.test
+handlers.test
+services.test
+
+# Node modules (si usas herramientas de JS)
+node_modules/
+
+# Archivos de backup
+*.bak
+*.backup
+
+# Archivos de migración temporal
+*.sql.tmp
+
+# Archivos de profiling
+*.prof
+*.pprof
+
+# Archivos de certificados locales
+*.crt
+*.key
+*.pem
