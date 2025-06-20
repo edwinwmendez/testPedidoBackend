@@ -30,9 +30,9 @@ func (r *productRepository) Create(product *models.Product) error {
 	if !product.IsActive {
 		// Use raw SQL for inactive products to ensure false value is preserved
 		return r.db.Exec(`
-			INSERT INTO products (product_id, name, description, price, image_url, is_active, created_at, updated_at) 
-			VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-			product.ProductID, product.Name, product.Description, product.Price, product.ImageURL, false).Error
+			INSERT INTO products (product_id, name, description, price, category_id, image_url, stock_quantity, is_active, created_at, updated_at) 
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+			product.ProductID, product.Name, product.Description, product.Price, product.CategoryID, product.ImageURL, product.StockQuantity, false).Error
 	}
 	
 	// For active products, use standard GORM create
@@ -70,7 +70,17 @@ func (r *productRepository) FindActive() ([]*models.Product, error) {
 }
 
 func (r *productRepository) Update(product *models.Product) error {
-	return r.db.Save(product).Error
+	// Use Updates to handle pointer fields correctly
+	return r.db.Model(product).Where("product_id = ?", product.ProductID).Updates(map[string]interface{}{
+		"name":           product.Name,
+		"description":    product.Description,
+		"price":          product.Price,
+		"category_id":    product.CategoryID,
+		"image_url":      product.ImageURL,
+		"stock_quantity": product.StockQuantity,
+		"is_active":      product.IsActive,
+		"updated_at":     "NOW()",
+	}).Error
 }
 
 func (r *productRepository) Delete(id string) error {
