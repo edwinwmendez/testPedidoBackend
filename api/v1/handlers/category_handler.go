@@ -43,7 +43,7 @@ func (h *CategoryHandler) RegisterRoutes(router fiber.Router, authMiddleware fib
 // @Accept json
 // @Produce json
 // @Success 200 {array} models.CategoryResponse
-// @Failure 500 {object} ErrorResponse
+// @Failure 500 {object} map[string]interface{}
 // @Router /api/v1/categories [get]
 func (h *CategoryHandler) GetAllCategories(c *fiber.Ctx) error {
 	categories, err := h.categoryService.GetAll()
@@ -68,7 +68,7 @@ func (h *CategoryHandler) GetAllCategories(c *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Success 200 {array} models.CategoryResponse
-// @Failure 500 {object} ErrorResponse
+// @Failure 500 {object} map[string]interface{}
 // @Router /api/v1/categories/active [get]
 func (h *CategoryHandler) GetActiveCategories(c *fiber.Ctx) error {
 	categories, err := h.categoryService.GetActive()
@@ -93,7 +93,7 @@ func (h *CategoryHandler) GetActiveCategories(c *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Success 200 {array} models.CategoryResponse
-// @Failure 500 {object} ErrorResponse
+// @Failure 500 {object} map[string]interface{}
 // @Router /api/v1/categories/with-count [get]
 func (h *CategoryHandler) GetCategoriesWithProductCount(c *fiber.Ctx) error {
 	categories, err := h.categoryService.GetWithProductCount()
@@ -119,9 +119,9 @@ func (h *CategoryHandler) GetCategoriesWithProductCount(c *fiber.Ctx) error {
 // @Produce json
 // @Param id path string true "ID de la categoría"
 // @Success 200 {object} models.CategoryResponse
-// @Failure 400 {object} ErrorResponse
-// @Failure 404 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
+// @Failure 400 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
 // @Router /api/v1/categories/{id} [get]
 func (h *CategoryHandler) GetCategoryByID(c *fiber.Ctx) error {
 	id := c.Params("id")
@@ -151,8 +151,8 @@ func (h *CategoryHandler) GetCategoryByID(c *fiber.Ctx) error {
 // @Produce json
 // @Param category body models.CreateCategoryRequest true "Datos de la categoría"
 // @Success 201 {object} models.CategoryResponse
-// @Failure 400 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
+// @Failure 400 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
 // @Security BearerAuth
 // @Router /api/v1/categories [post]
 func (h *CategoryHandler) CreateCategory(c *fiber.Ctx) error {
@@ -201,9 +201,9 @@ func (h *CategoryHandler) CreateCategory(c *fiber.Ctx) error {
 // @Param id path string true "ID de la categoría"
 // @Param category body models.UpdateCategoryRequest true "Datos actualizados de la categoría"
 // @Success 200 {object} models.CategoryResponse
-// @Failure 400 {object} ErrorResponse
-// @Failure 404 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
+// @Failure 400 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
 // @Security BearerAuth
 // @Router /api/v1/categories/{id} [put]
 func (h *CategoryHandler) UpdateCategory(c *fiber.Ctx) error {
@@ -270,10 +270,10 @@ func (h *CategoryHandler) UpdateCategory(c *fiber.Ctx) error {
 // @Accept json
 // @Produce json
 // @Param id path string true "ID de la categoría"
-// @Success 200 {object} SuccessResponse
-// @Failure 400 {object} ErrorResponse
-// @Failure 404 {object} ErrorResponse
-// @Failure 500 {object} ErrorResponse
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
 // @Security BearerAuth
 // @Router /api/v1/categories/{id} [delete]
 func (h *CategoryHandler) DeleteCategory(c *fiber.Ctx) error {
