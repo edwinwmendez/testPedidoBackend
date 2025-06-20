@@ -5,6 +5,7 @@ import (
 	"backend/internal/services"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 )
 
 // ProductHandler maneja las peticiones HTTP relacionadas con productos
@@ -147,6 +148,7 @@ type UpdateProductRequest struct {
 	Name          string  `json:"name,omitempty"`
 	Description   string  `json:"description,omitempty"`
 	Price         float64 `json:"price,omitempty" validate:"omitempty,min=0"`
+	CategoryID    string  `json:"category_id,omitempty"`
 	ImageURL      string  `json:"image_url,omitempty"`
 	StockQuantity *int    `json:"stock_quantity,omitempty" validate:"omitempty,min=0"`
 	IsActive      *bool   `json:"is_active,omitempty"`
@@ -204,6 +206,16 @@ func (h *ProductHandler) UpdateProduct(c *fiber.Ctx) error {
 
 	if req.Price > 0 {
 		product.Price = req.Price
+	}
+
+	if req.CategoryID != "" {
+		categoryUUID, err := uuid.Parse(req.CategoryID)
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "ID de categoría inválido",
+			})
+		}
+		product.CategoryID = &categoryUUID
 	}
 
 	if req.ImageURL != "" {
