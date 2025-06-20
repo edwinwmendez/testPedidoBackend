@@ -33,8 +33,28 @@ COPY --from=builder /app/main .
 # Copiar archivos de configuración
 COPY app.env.example app.env
 
+# Copiar migraciones y scripts
+COPY database/ database/
+COPY scripts/ scripts/
+
+# Instalar PostgreSQL client para migraciones
+RUN apk add --no-cache postgresql-client
+
 # Exponer puerto
 EXPOSE 8080
 
-# Ejecutar la aplicación
-CMD ["./main"] 
+# Crear script de inicio que ejecute migraciones y luego la app
+RUN echo '#!/bin/sh' > /app/start.sh && \
+    echo 'echo "Ejecutando migraciones..."' >> /app/start.sh && \
+    echo 'if [ -d "database/migrations" ]; then' >> /app/start.sh && \
+    echo '  for file in database/migrations/*.sql; do' >> /app/start.sh && \
+    echo '    echo "Ejecutando migración: $file"' >> /app/start.sh && \
+    echo '    psql $DATABASE_URL -f "$file" 2>/dev/null || echo "Migración ya aplicada: $file"' >> /app/start.sh && \
+    echo '  done' >> /app/start.sh && \
+    echo 'fi' >> /app/start.sh && \
+    echo 'echo "Iniciando aplicación..."' >> /app/start.sh && \
+    echo 'exec ./main' >> /app/start.sh && \
+    chmod +x /app/start.sh
+
+# Ejecutar script de inicio
+CMD ["./start.sh"] 

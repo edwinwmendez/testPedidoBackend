@@ -11,7 +11,7 @@ import (
 )
 
 // SetupRoutes configura todas las rutas de la API v1
-func SetupRoutes(app *fiber.App, authService auth.Service, userService *services.UserService, productService *services.ProductService, orderService *services.OrderService) {
+func SetupRoutes(app *fiber.App, authService auth.Service, userService *services.UserService, productService *services.ProductService, categoryService *services.CategoryService, orderService *services.OrderService) {
 	// Crear grupo de rutas para API v1
 	api := app.Group("/api/v1")
 
@@ -31,6 +31,10 @@ func SetupRoutes(app *fiber.App, authService auth.Service, userService *services
 	// Rutas de productos
 	productHandler := handlers.NewProductHandler(productService)
 	productHandler.RegisterRoutes(api, authMiddleware, adminOnly)
+
+	// Rutas de categorías
+	categoryHandler := handlers.NewCategoryHandler(categoryService)
+	categoryHandler.RegisterRoutes(api, authMiddleware, adminOnly)
 
 	// Rutas de pedidos
 	orderHandler := handlers.NewOrderHandler(orderService, authService)

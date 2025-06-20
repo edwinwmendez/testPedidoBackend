@@ -27,8 +27,8 @@ import (
 // ... comentarios Swagger ...
 func main() {
 	// Inicializar Swagger
-	docs.SwaggerInfo.Title = "ExactoGas API"
-	docs.SwaggerInfo.Description = "API para la aplicación de gestión de pedidos de gas a domicilio ExactoGas"
+	docs.SwaggerInfo.Title = "PedidoMendez API"
+	docs.SwaggerInfo.Description = "API para la aplicación de tienda en línea PedidoMendez"
 	docs.SwaggerInfo.Version = "1.0"
 	
 	// Configurar host dinámicamente para Render.com
@@ -57,12 +57,14 @@ func main() {
 	// Inicializar repositorios
 	userRepo := repositories.NewUserRepository(db)
 	productRepo := repositories.NewProductRepository(db)
+	categoryRepo := repositories.NewCategoryRepository(db)
 	orderRepo := repositories.NewOrderRepository(db)
 
 	// Inicializar servicios
 	authService := auth.NewService(db, cfg)
 	userService := services.NewUserService(userRepo)
 	productService := services.NewProductService(productRepo)
+	categoryService := services.NewCategoryService(categoryRepo)
 
 	// Inicializar servicio de notificaciones (opcional para el MVP)
 	var notificationService *services.NotificationService
@@ -98,13 +100,13 @@ func main() {
 	}))
 
 	// Configurar rutas de la API
-	v1.SetupRoutes(app, authService, userService, productService, orderService)
+	v1.SetupRoutes(app, authService, userService, productService, categoryService, orderService)
 
 	// Endpoint de salud para verificar que el servidor está funcionando
 	app.Get("/api/v1/health", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{
 			"status":  "ok",
-			"message": "ExactoGas API está funcionando correctamente",
+			"message": "PedidoMendez API está funcionando correctamente",
 		})
 	})
 

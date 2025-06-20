@@ -7,17 +7,21 @@ import (
 	"gorm.io/gorm"
 )
 
-// Product representa un producto en el sistema (balón de gas)
+// Product representa un producto en el sistema de tienda PedidoMendez
 type Product struct {
-	ProductID     uuid.UUID `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"product_id"`
-	Name          string    `gorm:"type:varchar(255);not null;unique" json:"name"`
-	Description   string    `gorm:"type:text" json:"description"`
-	Price         float64   `gorm:"type:decimal(10,2);not null;check:price > 0" json:"price"`
-	ImageURL      string    `gorm:"type:varchar(255)" json:"image_url"`
-	StockQuantity int       `gorm:"type:integer;not null;default:100;check:stock_quantity >= 0" json:"stock_quantity"`
-	IsActive      bool      `gorm:"not null;default:true" json:"is_active"`
-	CreatedAt     time.Time `gorm:"not null;default:now()" json:"created_at"`
-	UpdatedAt     time.Time `gorm:"not null;default:now()" json:"updated_at"`
+	ProductID     uuid.UUID  `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"product_id"`
+	Name          string     `gorm:"type:varchar(255);not null;unique" json:"name"`
+	Description   string     `gorm:"type:text" json:"description"`
+	Price         float64    `gorm:"type:decimal(10,2);not null;check:price > 0" json:"price"`
+	ImageURL      string     `gorm:"type:varchar(255)" json:"image_url"`
+	StockQuantity int        `gorm:"type:integer;not null;default:100;check:stock_quantity >= 0" json:"stock_quantity"`
+	CategoryID    *uuid.UUID `gorm:"type:uuid" json:"category_id"`
+	IsActive      bool       `gorm:"not null;default:true" json:"is_active"`
+	CreatedAt     time.Time  `gorm:"not null;default:now()" json:"created_at"`
+	UpdatedAt     time.Time  `gorm:"not null;default:now()" json:"updated_at"`
+
+	// Relación con categoría
+	Category *Category `gorm:"foreignKey:CategoryID" json:"category,omitempty"`
 }
 
 // BeforeCreate se ejecuta antes de crear un nuevo producto

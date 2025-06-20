@@ -42,7 +42,7 @@ func (r *productRepository) Create(product *models.Product) error {
 func (r *productRepository) FindByID(id string) (*models.Product, error) {
 	var product models.Product
 
-	if err := r.db.Where("product_id = ?", id).First(&product).Error; err != nil {
+	if err := r.db.Preload("Category").Where("product_id = ?", id).First(&product).Error; err != nil {
 		return nil, err
 	}
 
@@ -52,7 +52,7 @@ func (r *productRepository) FindByID(id string) (*models.Product, error) {
 func (r *productRepository) FindAll() ([]*models.Product, error) {
 	var products []*models.Product
 
-	if err := r.db.Find(&products).Error; err != nil {
+	if err := r.db.Preload("Category").Find(&products).Error; err != nil {
 		return nil, err
 	}
 
@@ -62,7 +62,7 @@ func (r *productRepository) FindAll() ([]*models.Product, error) {
 func (r *productRepository) FindActive() ([]*models.Product, error) {
 	var products []*models.Product
 
-	if err := r.db.Where("is_active = ?", true).Find(&products).Error; err != nil {
+	if err := r.db.Preload("Category").Where("is_active = ?", true).Find(&products).Error; err != nil {
 		return nil, err
 	}
 
