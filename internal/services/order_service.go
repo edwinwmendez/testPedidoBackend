@@ -464,12 +464,14 @@ func (s *OrderService) notifyOrderAssigned(order *models.Order) {
 	} else {
 		repartidorName = "un repartidor"
 	}
-	message := fmt.Sprintf("Tu pedido ha sido asignado a %s y pronto iniciará la entrega.", repartidorName)
+	
+	// Notificación SMS/push al cliente
+	clientMessage := fmt.Sprintf("Tu pedido ha sido asignado a %s y pronto iniciará la entrega.", repartidorName)
 	if s.notificationService != nil {
-		s.notificationService.SendToClient(order.ClientID.String(), message, order.OrderID.String())
+		s.notificationService.SendToClient(order.ClientID.String(), clientMessage, order.OrderID.String())
 	}
 	
-	// WebSocket: notificar al cliente sobre la asignación
+	// WebSocket: estructura de payload común
 	type StatusUpdatePayload struct {
 		OrderID          string  `json:"order_id"`
 		Status           string  `json:"status"`
@@ -484,27 +486,64 @@ func (s *OrderService) notifyOrderAssigned(order *models.Order) {
 		eta = &formatted
 	}
 	
-	payload := StatusUpdatePayload{
-		OrderID:          order.OrderID.String(),
-		Status:           string(order.OrderStatus),
-		Message:          message,
-		EstimatedArrival: eta,
-		RepartidorName:   repartidorName,
-	}
-	
 	// Only send WebSocket messages if hub is available
 	if s.wsHub != nil {
-		wsMsg := ws.Message{
+		// 1. Notificación específica al CLIENTE
+		clientPayload := StatusUpdatePayload{
+			OrderID:          order.OrderID.String(),
+			Status:           string(order.OrderStatus),
+			Message:          clientMessage,
+			EstimatedArrival: eta,
+			RepartidorName:   repartidorName,
+		}
+		
+		clientWsMsg := ws.Message{
 			Type:    ws.OrderStatusUpdate,
-			Payload: ws.MustMarshalPayload(payload),
+			Payload: ws.MustMarshalPayload(clientPayload),
 		}
 		
 		log.Printf("[WebSocket] Enviando notificación de asignación al cliente: %s", order.ClientID.String())
-		s.wsHub.SendToUser(order.ClientID.String(), wsMsg)
+		s.wsHub.SendToUser(order.ClientID.String(), clientWsMsg)
 		
-		// También notificar a repartidores y admin
-		s.wsHub.SendToRole("REPARTIDOR", wsMsg)
-		s.wsHub.SendToRole("ADMIN", wsMsg)
+		// 2. Notificación específica al REPARTIDOR ASIGNADO
+		if order.AssignedRepartidor != nil {
+			repartidorMessage := fmt.Sprintf("Se te ha asignado un nuevo pedido #%s. Dirígete al establecimiento para recogerlo.", order.OrderID.String()[:8])
+			
+			repartidorPayload := StatusUpdatePayload{
+				OrderID:          order.OrderID.String(),
+				Status:           string(order.OrderStatus),
+				Message:          repartidorMessage,
+				EstimatedArrival: eta,
+				RepartidorName:   repartidorName,
+			}
+			
+			repartidorWsMsg := ws.Message{
+				Type:    ws.OrderStatusUpdate,
+				Payload: ws.MustMarshalPayload(repartidorPayload),
+			}
+			
+			log.Printf("[WebSocket] Enviando notificación de asignación al repartidor: %s", order.AssignedRepartidor.UserID.String())
+			s.wsHub.SendToUser(order.AssignedRepartidor.UserID.String(), repartidorWsMsg)
+		}
+		
+		// 3. Notificación informativa para ADMIN
+		adminMessage := fmt.Sprintf("Pedido #%s asignado a %s", order.OrderID.String()[:8], repartidorName)
+		
+		adminPayload := StatusUpdatePayload{
+			OrderID:          order.OrderID.String(),
+			Status:           string(order.OrderStatus),
+			Message:          adminMessage,
+			EstimatedArrival: eta,
+			RepartidorName:   repartidorName,
+		}
+		
+		adminWsMsg := ws.Message{
+			Type:    ws.OrderStatusUpdate,
+			Payload: ws.MustMarshalPayload(adminPayload),
+		}
+		
+		log.Printf("[WebSocket] Enviando notificación de asignación a administradores")
+		s.wsHub.SendToRole("ADMIN", adminWsMsg)
 	}
 }
 
