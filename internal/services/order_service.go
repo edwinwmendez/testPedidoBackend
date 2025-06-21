@@ -447,7 +447,11 @@ func (s *OrderService) notifyStatusChange(order *models.Order) {
 			Payload: ws.MustMarshalPayload(payload),
 		}
 		s.wsHub.SendToUser(order.ClientID.String(), msg)
-		s.wsHub.SendToRole("REPARTIDOR", msg)
+		
+		// No enviar a REPARTIDOR para asignaciones - usa notifyOrderAssigned específica
+		if order.OrderStatus != models.OrderStatusAssigned {
+			s.wsHub.SendToRole("REPARTIDOR", msg)
+		}
 		s.wsHub.SendToRole("ADMIN", msg)
 	}
 }
