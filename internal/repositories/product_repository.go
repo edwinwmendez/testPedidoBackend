@@ -11,6 +11,10 @@ type ProductRepository interface {
 	FindByID(id string) (*models.Product, error)
 	FindAll() ([]*models.Product, error)
 	FindActive() ([]*models.Product, error)
+	FindPopular(limit int) ([]*models.Product, error)
+	FindRecent(limit int) ([]*models.Product, error)
+	IncrementViewCount(id string) error
+	IncrementPurchaseCount(id string) error
 	Update(product *models.Product) error
 	Delete(id string) error
 }
@@ -85,4 +89,44 @@ func (r *productRepository) Update(product *models.Product) error {
 
 func (r *productRepository) Delete(id string) error {
 	return r.db.Delete(&models.Product{}, "product_id = ?", id).Error
+}
+
+// FindPopular obtiene productos populares basados en popularity_score
+func (r *productRepository) FindPopular(limit int) ([]*models.Product, error) {
+	var products []*models.Product
+	
+	err := r.db.Preload("Category").
+		Where("is_active = ? AND stock_quantity > 0", true).
+		Order("popularity_score DESC, purchase_count DESC, rating_average DESC").
+		Limit(limit).
+		Find(&products).Error
+	
+	return products, err
+}
+
+// FindRecent obtiene los productos más recientes
+func (r *productRepository) FindRecent(limit int) ([]*models.Product, error) {
+	var products []*models.Product
+	
+	err := r.db.Preload("Category").
+		Where("is_active = ? AND stock_quantity > 0", true).
+		Order("created_at DESC").
+		Limit(limit).
+		Find(&products).Error
+	
+	return products, err
+}
+
+// IncrementViewCount incrementa el contador de vistas de un producto
+func (r *productRepository) IncrementViewCount(id string) error {
+	return r.db.Model(&models.Product{}).
+		Where("product_id = ?", id).
+		Update("view_count", gorm.Expr("view_count + 1")).Error
+}
+
+// IncrementPurchaseCount incrementa el contador de compras de un producto
+func (r *productRepository) IncrementPurchaseCount(id string) error {
+	return r.db.Model(&models.Product{}).
+		Where("product_id = ?", id).
+		Update("purchase_count", gorm.Expr("purchase_count + 1")).Error
 }

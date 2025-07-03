@@ -274,13 +274,102 @@ func (h *ProductHandler) DeleteProduct(c *fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
+// GetPopularProducts obtiene productos populares
+// @Summary Obtener productos populares
+// @Description Obtiene una lista de los productos más populares
+// @Tags productos
+// @Accept json
+// @Produce json
+// @Param limit query int false "Límite de productos (máximo 20)" default(5)
+// @Success 200 {array} models.Product
+// @Failure 500 {object} map[string]interface{}
+// @Router /products/popular [get]
+func (h *ProductHandler) GetPopularProducts(c *fiber.Ctx) error {
+	// Obtener parámetro limit con valor por defecto
+	limit := c.QueryInt("limit", 5)
+	
+	products, err := h.productService.GetPopular(limit)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Error al obtener productos populares",
+		})
+	}
+
+	return c.JSON(products)
+}
+
+// GetRecentProducts obtiene productos recientes
+// @Summary Obtener productos recientes
+// @Description Obtiene una lista de los productos más recientes
+// @Tags productos
+// @Accept json
+// @Produce json
+// @Param limit query int false "Límite de productos (máximo 20)" default(5)
+// @Success 200 {array} models.Product
+// @Failure 500 {object} map[string]interface{}
+// @Router /products/recent [get]
+func (h *ProductHandler) GetRecentProducts(c *fiber.Ctx) error {
+	// Obtener parámetro limit con valor por defecto
+	limit := c.QueryInt("limit", 5)
+	
+	products, err := h.productService.GetRecent(limit)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Error al obtener productos recientes",
+		})
+	}
+
+	return c.JSON(products)
+}
+
+// IncrementProductView incrementa el contador de vistas de un producto
+// @Summary Incrementar vistas de producto
+// @Description Incrementa el contador de vistas para analytics
+// @Tags productos
+// @Accept json
+// @Produce json
+// @Param id path string true "ID del producto"
+// @Success 200 {object} map[string]interface{}
+// @Failure 400 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /products/{id}/view [post]
+func (h *ProductHandler) IncrementProductView(c *fiber.Ctx) error {
+	productID := c.Params("id")
+	
+	// Validar UUID
+	if _, err := uuid.Parse(productID); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "ID de producto inválido",
+		})
+	}
+	
+	if err := h.productService.IncrementViewCount(productID); err != nil {
+		if err == services.ErrProductNotFoundService {
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"error": "Producto no encontrado",
+			})
+		}
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Error al incrementar vistas",
+		})
+	}
+	
+	return c.JSON(fiber.Map{
+		"message": "Vista registrada correctamente",
+	})
+}
+
 // RegisterRoutes registra las rutas del handler en el router
 func (h *ProductHandler) RegisterRoutes(router fiber.Router, authMiddleware fiber.Handler, adminOnly fiber.Handler) {
 	products := router.Group("/products")
 
 	// Rutas públicas
 	products.Get("/", h.GetAllProducts)
+	products.Get("/popular", h.GetPopularProducts)
+	products.Get("/recent", h.GetRecentProducts)
 	products.Get("/:id", h.GetProductByID)
+	products.Post("/:id/view", h.IncrementProductView)
 
 	// Rutas solo para administradores
 	adminProducts := router.Group("/products", authMiddleware, adminOnly)

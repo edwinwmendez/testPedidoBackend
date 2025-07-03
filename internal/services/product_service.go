@@ -53,3 +53,49 @@ func (s *ProductService) Update(product *models.Product) error {
 func (s *ProductService) Delete(id string) error {
 	return s.repo.Delete(id)
 }
+
+// GetPopular obtiene productos populares
+func (s *ProductService) GetPopular(limit int) ([]*models.Product, error) {
+	if limit <= 0 {
+		limit = 5 // Default limit
+	}
+	if limit > 20 {
+		limit = 20 // Maximum limit to prevent abuse
+	}
+	
+	return s.repo.FindPopular(limit)
+}
+
+// GetRecent obtiene productos recientes
+func (s *ProductService) GetRecent(limit int) ([]*models.Product, error) {
+	if limit <= 0 {
+		limit = 5 // Default limit
+	}
+	if limit > 20 {
+		limit = 20 // Maximum limit to prevent abuse
+	}
+	
+	return s.repo.FindRecent(limit)
+}
+
+// IncrementViewCount incrementa el contador de vistas
+func (s *ProductService) IncrementViewCount(id string) error {
+	// Verificar que el producto existe
+	_, err := s.repo.FindByID(id)
+	if err != nil {
+		return ErrProductNotFoundService
+	}
+	
+	return s.repo.IncrementViewCount(id)
+}
+
+// IncrementPurchaseCount incrementa el contador de compras
+func (s *ProductService) IncrementPurchaseCount(id string) error {
+	// Verificar que el producto existe
+	_, err := s.repo.FindByID(id)
+	if err != nil {
+		return ErrProductNotFoundService
+	}
+	
+	return s.repo.IncrementPurchaseCount(id)
+}
