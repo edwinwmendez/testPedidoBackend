@@ -12,8 +12,10 @@ type Product struct {
 	ProductID       uuid.UUID  `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"product_id"`
 	Name            string     `gorm:"type:varchar(255);not null;unique" json:"name"`
 	Description     string     `gorm:"type:text" json:"description"`
+	DetailedDescription string `gorm:"type:text" json:"detailed_description"`
 	Price           float64    `gorm:"type:decimal(10,2);not null;check:price > 0" json:"price"`
 	ImageURL        string     `gorm:"type:varchar(255)" json:"image_url"`
+	UnitOfMeasure   string     `gorm:"type:varchar(50);not null;default:'unidad'" json:"unit_of_measure"`
 	StockQuantity   int        `gorm:"type:integer;not null;default:100;check:stock_quantity >= 0" json:"stock_quantity"`
 	CategoryID      *uuid.UUID `gorm:"type:uuid" json:"category_id"`
 	IsActive        bool       `gorm:"not null;default:true" json:"is_active"`

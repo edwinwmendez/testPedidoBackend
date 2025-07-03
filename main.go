@@ -59,12 +59,14 @@ func main() {
 	productRepo := repositories.NewProductRepository(db)
 	categoryRepo := repositories.NewCategoryRepository(db)
 	orderRepo := repositories.NewOrderRepository(db)
+	productRatingRepo := repositories.NewProductRatingRepository(db)
 
 	// Inicializar servicios
 	authService := auth.NewService(db, cfg)
 	userService := services.NewUserService(userRepo)
 	productService := services.NewProductService(productRepo)
 	categoryService := services.NewCategoryService(categoryRepo)
+	productRatingService := services.NewProductRatingService(productRatingRepo, productRepo)
 
 	// Inicializar servicio de notificaciones (opcional para el MVP)
 	var notificationService *services.NotificationService
@@ -100,7 +102,7 @@ func main() {
 	}))
 
 	// Configurar rutas de la API
-	v1.SetupRoutes(app, authService, userService, productService, categoryService, orderService)
+	v1.SetupRoutes(app, authService, userService, productService, categoryService, orderService, productRatingService)
 
 	// Endpoint de salud para verificar que el servidor está funcionando
 	app.Get("/api/v1/health", func(c *fiber.Ctx) error {

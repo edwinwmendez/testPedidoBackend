@@ -61,6 +61,12 @@ func (s *ProductRatingService) Create(req *models.CreateRatingRequest, userID st
 		return nil, err
 	}
 
+	// Actualizar el promedio de calificación del producto
+	if err := s.updateProductRatingAverage(req.ProductID.String()); err != nil {
+		// Log el error pero no fallar la creación
+		// En producción usaríamos un logger apropiado
+	}
+
 	// Crear respuesta
 	response := &models.RatingResponse{
 		RatingID:   rating.RatingID,
@@ -130,4 +136,79 @@ func (s *ProductRatingService) GetUserRatingForProduct(productID, userID string)
 	}
 
 	return response, nil
+}
+
+// Update actualiza una calificación existente
+func (s *ProductRatingService) Update(req *models.CreateRatingRequest, userID string) (*models.RatingResponse, error) {
+	// Verificar que el producto existe
+	_, err := s.productRepo.FindByID(req.ProductID.String())
+	if err != nil {
+		return nil, ErrProductNotFoundService
+	}
+
+	// Buscar la calificación existente del usuario
+	existingRating, err := s.ratingRepo.FindByProductAndUser(req.ProductID.String(), userID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrRatingNotFound
+		}
+		return nil, err
+	}
+
+	// Actualizar la calificación
+	existingRating.Rating = req.Rating
+	existingRating.ReviewText = req.ReviewText
+
+	// Guardar en la base de datos
+	if err := s.ratingRepo.Update(existingRating); err != nil {
+		return nil, err
+	}
+
+	// Actualizar promedio del producto
+	if err := s.updateProductRatingAverage(req.ProductID.String()); err != nil {
+		return nil, err
+	}
+
+	// Crear respuesta
+	response := &models.RatingResponse{
+		RatingID:   existingRating.RatingID,
+		ProductID:  existingRating.ProductID,
+		UserID:     existingRating.UserID,
+		Rating:     existingRating.Rating,
+		ReviewText: existingRating.ReviewText,
+		CreatedAt:  existingRating.CreatedAt,
+		UpdatedAt:  existingRating.UpdatedAt,
+	}
+
+	return response, nil
+}
+
+// updateProductRatingAverage actualiza el promedio de calificación de un producto
+func (s *ProductRatingService) updateProductRatingAverage(productID string) error {
+	ratings, err := s.ratingRepo.FindByProduct(productID)
+	if err != nil {
+		return err
+	}
+
+	if len(ratings) == 0 {
+		return nil
+	}
+
+	// Calcular promedio
+	sum := 0
+	for _, rating := range ratings {
+		sum += rating.Rating
+	}
+	average := float64(sum) / float64(len(ratings))
+
+	// Actualizar producto
+	product, err := s.productRepo.FindByID(productID)
+	if err != nil {
+		return err
+	}
+
+	product.RatingAverage = average
+	product.RatingCount = len(ratings)
+
+	return s.productRepo.Update(product)
 }

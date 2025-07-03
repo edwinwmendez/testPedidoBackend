@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"backend/internal/auth"
 	"backend/internal/models"
 	"backend/internal/services"
 
@@ -36,8 +37,14 @@ func NewProductRatingHandler(ratingService *services.ProductRatingService) *Prod
 // @Failure 500 {object} map[string]interface{}
 // @Router /ratings [post]
 func (h *ProductRatingHandler) CreateRating(c *fiber.Ctx) error {
-	// Obtener ID del usuario del contexto (agregado por middleware de auth)
-	userID := c.Locals("userID").(string)
+	// Obtener claims del usuario del contexto (agregado por middleware de auth)
+	claims, ok := c.Locals("user").(*auth.Claims)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "No se encontró información de autenticación",
+		})
+	}
+	userID := claims.UserID.String()
 	
 	var req models.CreateRatingRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -126,7 +133,13 @@ func (h *ProductRatingHandler) GetProductRatings(c *fiber.Ctx) error {
 // @Failure 500 {object} map[string]interface{}
 // @Router /products/{id}/ratings/me [get]
 func (h *ProductRatingHandler) GetUserRating(c *fiber.Ctx) error {
-	userID := c.Locals("userID").(string)
+	claims, ok := c.Locals("user").(*auth.Claims)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "No se encontró información de autenticación",
+		})
+	}
+	userID := claims.UserID.String()
 	productID := c.Params("id")
 	
 	// Validar UUID
@@ -150,17 +163,74 @@ func (h *ProductRatingHandler) GetUserRating(c *fiber.Ctx) error {
 	return c.JSON(rating)
 }
 
+// UpdateRating actualiza una calificación existente
+// @Summary Actualizar calificación
+// @Description Permite a un usuario actualizar su calificación de un producto
+// @Tags calificaciones
+// @Accept json
+// @Produce json
+// @Param rating body models.CreateRatingRequest true "Datos de la calificación actualizada"
+// @Security BearerAuth
+// @Success 200 {object} models.RatingResponse
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Router /ratings [put]
+func (h *ProductRatingHandler) UpdateRating(c *fiber.Ctx) error {
+	claims, ok := c.Locals("user").(*auth.Claims)
+	if !ok {
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"error": "No se encontró información de autenticación",
+		})
+	}
+	userID := claims.UserID.String()
+	
+	var req models.CreateRatingRequest
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Formato de datos inválido",
+		})
+	}
+	
+	// Validar request
+	if req.Rating < 1 || req.Rating > 5 {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "La calificación debe estar entre 1 y 5",
+		})
+	}
+	
+	response, err := h.ratingService.Update(&req, userID)
+	if err != nil {
+		switch err {
+		case services.ErrProductNotFoundService:
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"error": "Producto no encontrado",
+			})
+		case services.ErrRatingNotFound:
+			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+				"error": "No tienes una calificación para este producto",
+			})
+		default:
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"error": "Error al actualizar la calificación",
+			})
+		}
+	}
+	
+	return c.JSON(response)
+}
+
 // RegisterRoutes registra las rutas del handler en el router
 func (h *ProductRatingHandler) RegisterRoutes(router fiber.Router, authMiddleware fiber.Handler) {
-	// Rutas que requieren autenticación
+	// Rutas que requieren autenticación SOLO (sin restricciones de rol)
 	ratings := router.Group("/ratings", authMiddleware)
 	ratings.Post("/", h.CreateRating)
+	ratings.Put("/", h.UpdateRating)
 	
-	// Rutas públicas para calificaciones de productos
-	products := router.Group("/products")
-	products.Get("/:id/ratings", h.GetProductRatings)
+	// Rutas públicas para calificaciones de productos (sin autenticación)
+	router.Get("/products/:id/ratings", h.GetProductRatings)
 	
-	// Rutas autenticadas para calificaciones de productos
-	authProducts := router.Group("/products", authMiddleware)
-	authProducts.Get("/:id/ratings/me", h.GetUserRating)
+	// Rutas autenticadas para calificaciones de productos (solo auth, sin roles)
+	router.Get("/products/:id/ratings/me", authMiddleware, h.GetUserRating)
 }

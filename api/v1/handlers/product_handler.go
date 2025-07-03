@@ -87,8 +87,10 @@ func (h *ProductHandler) GetProductByID(c *fiber.Ctx) error {
 type CreateProductRequest struct {
 	Name          string  `json:"name" validate:"required"`
 	Description   string  `json:"description"`
+	DetailedDescription string `json:"detailed_description"`
 	Price         float64 `json:"price" validate:"required,min=0"`
 	ImageURL      string  `json:"image_url"`
+	UnitOfMeasure string  `json:"unit_of_measure"`
 	StockQuantity int     `json:"stock_quantity" validate:"min=0"`
 	IsActive      bool    `json:"is_active"`
 }
@@ -127,8 +129,10 @@ func (h *ProductHandler) CreateProduct(c *fiber.Ctx) error {
 	product := &models.Product{
 		Name:          req.Name,
 		Description:   req.Description,
+		DetailedDescription: req.DetailedDescription,
 		Price:         req.Price,
 		ImageURL:      req.ImageURL,
+		UnitOfMeasure: req.UnitOfMeasure,
 		StockQuantity: req.StockQuantity,
 		IsActive:      req.IsActive,
 	}
@@ -147,9 +151,11 @@ func (h *ProductHandler) CreateProduct(c *fiber.Ctx) error {
 type UpdateProductRequest struct {
 	Name          string  `json:"name,omitempty"`
 	Description   string  `json:"description,omitempty"`
+	DetailedDescription string `json:"detailed_description,omitempty"`
 	Price         float64 `json:"price,omitempty" validate:"omitempty,min=0"`
 	CategoryID    string  `json:"category_id,omitempty"`
 	ImageURL      string  `json:"image_url,omitempty"`
+	UnitOfMeasure string  `json:"unit_of_measure,omitempty"`
 	StockQuantity *int    `json:"stock_quantity,omitempty" validate:"omitempty,min=0"`
 	IsActive      *bool   `json:"is_active,omitempty"`
 }
@@ -204,6 +210,10 @@ func (h *ProductHandler) UpdateProduct(c *fiber.Ctx) error {
 		product.Description = req.Description
 	}
 
+	if req.DetailedDescription != "" {
+		product.DetailedDescription = req.DetailedDescription
+	}
+
 	if req.Price > 0 {
 		product.Price = req.Price
 	}
@@ -220,6 +230,10 @@ func (h *ProductHandler) UpdateProduct(c *fiber.Ctx) error {
 
 	if req.ImageURL != "" {
 		product.ImageURL = req.ImageURL
+	}
+
+	if req.UnitOfMeasure != "" {
+		product.UnitOfMeasure = req.UnitOfMeasure
 	}
 
 	if req.IsActive != nil {
@@ -362,16 +376,14 @@ func (h *ProductHandler) IncrementProductView(c *fiber.Ctx) error {
 
 // RegisterRoutes registra las rutas del handler en el router
 func (h *ProductHandler) RegisterRoutes(router fiber.Router, authMiddleware fiber.Handler, adminOnly fiber.Handler) {
-	products := router.Group("/products")
+	// Rutas públicas para productos (sin grupo para evitar conflictos con ratings)
+	router.Get("/products", h.GetAllProducts)
+	router.Get("/products/popular", h.GetPopularProducts)
+	router.Get("/products/recent", h.GetRecentProducts)
+	router.Get("/products/:id", h.GetProductByID)
+	router.Post("/products/:id/view", h.IncrementProductView)
 
-	// Rutas públicas
-	products.Get("/", h.GetAllProducts)
-	products.Get("/popular", h.GetPopularProducts)
-	products.Get("/recent", h.GetRecentProducts)
-	products.Get("/:id", h.GetProductByID)
-	products.Post("/:id/view", h.IncrementProductView)
-
-	// Rutas solo para administradores
+	// Rutas solo para administradores (con grupo específico para admin)
 	adminProducts := router.Group("/products", authMiddleware, adminOnly)
 	adminProducts.Post("/", h.CreateProduct)
 	adminProducts.Put("/:id", h.UpdateProduct)
