@@ -28,6 +28,10 @@ func SetupRoutes(app *fiber.App, authService auth.Service, userService *services
 	userHandler := handlers.NewUserHandler(userService)
 	userHandler.RegisterRoutes(api, authMiddleware, adminOnly)
 
+	// Rutas de calificaciones de productos (DEBE ir ANTES que las rutas de productos para evitar conflictos)
+	productRatingHandler := handlers.NewProductRatingHandler(productRatingService)
+	productRatingHandler.RegisterRoutes(api, authMiddleware)
+
 	// Rutas de productos
 	productHandler := handlers.NewProductHandler(productService)
 	productHandler.RegisterRoutes(api, authMiddleware, adminOnly)
@@ -39,10 +43,6 @@ func SetupRoutes(app *fiber.App, authService auth.Service, userService *services
 	// Rutas de pedidos
 	orderHandler := handlers.NewOrderHandler(orderService, authService)
 	orderHandler.RegisterRoutes(api, authMiddleware, adminOnly, repartidorOrAdmin)
-
-	// Rutas de calificaciones de productos
-	productRatingHandler := handlers.NewProductRatingHandler(productRatingService)
-	productRatingHandler.RegisterRoutes(api, authMiddleware)
 
 	// Ruta de salud
 	api.Get("/health", func(c *fiber.Ctx) error {
