@@ -446,6 +446,8 @@ func (s *OrderService) notifyStatusChange(order *models.Order) {
 			Type:    ws.OrderStatusUpdate,
 			Payload: ws.MustMarshalPayload(payload),
 		}
+		
+		log.Printf("[WebSocket] Enviando notificación de cambio de estado al cliente: %s", order.ClientID.String())
 		s.wsHub.SendToUser(order.ClientID.String(), msg)
 		
 		// No enviar a REPARTIDOR para asignaciones - usa notifyOrderAssigned específica

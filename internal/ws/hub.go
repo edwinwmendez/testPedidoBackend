@@ -66,8 +66,22 @@ func (h *Hub) Run() {
 func (h *Hub) SendToUser(userID string, msg Message) {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
+	
+	log.Printf("[WebSocket Hub] Intentando enviar mensaje tipo '%s' a usuario %s", msg.Type, userID)
+	
 	if client, ok := h.clients[userID]; ok {
+		log.Printf("[WebSocket Hub] Usuario %s encontrado, enviando mensaje", userID)
 		client.send <- msg
+		log.Printf("[WebSocket Hub] Mensaje enviado exitosamente a usuario %s", userID)
+	} else {
+		log.Printf("[WebSocket Hub] Usuario %s NO ENCONTRADO en clientes conectados", userID)
+		log.Printf("[WebSocket Hub] Clientes conectados actualmente: %v", func() []string {
+			var users []string
+			for uid := range h.clients {
+				users = append(users, uid)
+			}
+			return users
+		}())
 	}
 }
 
