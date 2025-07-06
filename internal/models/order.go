@@ -24,7 +24,7 @@ const (
 type Order struct {
 	OrderID              uuid.UUID   `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"order_id"`
 	ClientID             uuid.UUID   `gorm:"type:uuid;not null" json:"client_id"`
-	Client               User        `gorm:"foreignKey:ClientID" json:"client,omitempty"`
+	Client               User        `gorm:"foreignKey:ClientID" json:"client"`
 	TotalAmount          float64     `gorm:"type:decimal(10,2);not null;check:total_amount >= 0" json:"total_amount"`
 	Latitude             float64     `gorm:"type:numeric(9,6);not null" json:"latitude"`
 	Longitude            float64     `gorm:"type:numeric(9,6);not null" json:"longitude"`
@@ -35,13 +35,13 @@ type Order struct {
 	ConfirmedAt          *time.Time  `json:"confirmed_at"`
 	EstimatedArrivalTime *time.Time  `json:"estimated_arrival_time"`
 	AssignedRepartidorID *uuid.UUID  `gorm:"type:uuid" json:"assigned_repartidor_id"`
-	AssignedRepartidor   *User       `gorm:"foreignKey:AssignedRepartidorID" json:"assigned_repartidor,omitempty"`
+	AssignedRepartidor   *User       `gorm:"foreignKey:AssignedRepartidorID" json:"assigned_repartidor"`
 	AssignedAt           *time.Time  `json:"assigned_at"`
 	DeliveredAt          *time.Time  `json:"delivered_at"`
 	CancelledAt          *time.Time  `json:"cancelled_at"`
 	CreatedAt            time.Time   `gorm:"not null;default:now()" json:"created_at"`
 	UpdatedAt            time.Time   `gorm:"not null;default:now()" json:"updated_at"`
-	OrderItems           []OrderItem `gorm:"foreignKey:OrderID" json:"order_items,omitempty"`
+	OrderItems           []OrderItem `gorm:"foreignKey:OrderID" json:"order_items"`
 }
 
 // OrderItem representa un ítem dentro de un pedido
@@ -49,7 +49,7 @@ type OrderItem struct {
 	OrderItemID uuid.UUID `gorm:"type:uuid;primary_key;default:gen_random_uuid()" json:"order_item_id"`
 	OrderID     uuid.UUID `gorm:"type:uuid;not null" json:"order_id"`
 	ProductID   uuid.UUID `gorm:"type:uuid;not null" json:"product_id"`
-	Product     Product   `gorm:"foreignKey:ProductID" json:"product,omitempty"`
+	Product     Product   `gorm:"foreignKey:ProductID" json:"product"`
 	Quantity    int       `gorm:"type:integer;not null;check:quantity > 0" json:"quantity"`
 	UnitPrice   float64   `gorm:"type:decimal(10,2);not null;check:unit_price > 0" json:"unit_price"`
 	Subtotal    float64   `gorm:"type:decimal(10,2);not null;check:subtotal >= 0" json:"subtotal"`

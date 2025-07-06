@@ -276,6 +276,103 @@ func (h *OrderHandler) GetOrderByID(c *fiber.Ctx) error {
 	return c.JSON(order)
 }
 
+// @Summary Obtener información del repartidor de un pedido
+// @Description Obtiene la información del repartidor asignado a un pedido específico según permisos del usuario
+// @Tags pedidos
+// @Accept json
+// @Produce json
+// @Param id path string true "ID del pedido"
+// @Success 200 {object} models.User
+// @Failure 400 {object} map[string]interface{}
+// @Failure 401 {object} map[string]interface{}
+// @Failure 403 {object} map[string]interface{}
+// @Failure 404 {object} map[string]interface{}
+// @Failure 500 {object} map[string]interface{}
+// @Security BearerAuth
+// @Router /orders/{id}/repartidor [get]
+// GetOrderRepartidor obtiene la información del repartidor asignado a un pedido
+func (h *OrderHandler) GetOrderRepartidor(c *fiber.Ctx) error {
+	// Obtener el usuario autenticado del contexto
+	claims := c.Locals("user").(*auth.Claims)
+
+	// Obtener el ID del pedido de los parámetros
+	orderID := c.Params("id")
+	if orderID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "ID de pedido requerido",
+		})
+	}
+
+	// Obtener el pedido
+	order, err := h.orderService.GetOrderByID(orderID)
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": "Pedido no encontrado",
+		})
+	}
+
+	// Verificar que el pedido tenga un repartidor asignado
+	if order.AssignedRepartidor == nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"error": "No hay repartidor asignado a este pedido",
+		})
+	}
+
+	// Verificar permisos según el rol
+	switch claims.UserRole {
+	case models.UserRoleClient:
+		// Los clientes solo pueden ver el repartidor de sus propios pedidos
+		if order.ClientID.String() != claims.UserID.String() {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"error": "No tienes permiso para ver esta información",
+			})
+		}
+	case models.UserRoleRepartidor:
+		// Los repartidores pueden ver información del repartidor si:
+		// 1. Es información sobre ellos mismos, O
+		// 2. Es un pedido que pueden ver (asignado a ellos o pendiente)
+		canView := false
+		
+		// Si es información sobre ellos mismos
+		if order.AssignedRepartidor.UserID.String() == claims.UserID.String() {
+			canView = true
+		}
+		
+		// Si es un pedido que pueden ver según lógica normal
+		if order.AssignedRepartidorID != nil &&
+			order.AssignedRepartidorID.String() == claims.UserID.String() {
+			canView = true
+		}
+		
+		// Si es un pedido pendiente (pueden ver todos los repartidores)
+		if order.OrderStatus == models.OrderStatusPending || 
+		   order.OrderStatus == models.OrderStatusPendingOutOfHours {
+			canView = true
+		}
+		
+		if !canView {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
+				"error": "No tienes permiso para ver esta información",
+			})
+		}
+	case models.UserRoleAdmin:
+		// Los administradores pueden ver cualquier información
+	}
+
+	// Retornar solo la información del repartidor (sin datos sensibles como password)
+	repartidorInfo := fiber.Map{
+		"user_id":      order.AssignedRepartidor.UserID,
+		"full_name":    order.AssignedRepartidor.FullName,
+		"phone_number": order.AssignedRepartidor.PhoneNumber,
+		"email":        order.AssignedRepartidor.Email,
+		"user_role":    order.AssignedRepartidor.UserRole,
+		"is_active":    order.AssignedRepartidor.IsActive,
+		"created_at":   order.AssignedRepartidor.CreatedAt,
+	}
+
+	return c.JSON(repartidorInfo)
+}
+
 // @Summary Actualizar el estado de un pedido
 // @Description Actualiza el estado de un pedido según el rol del usuario
 // @Tags pedidos
@@ -589,4 +686,5 @@ func (h *OrderHandler) RegisterRoutes(router fiber.Router, authMiddleware fiber.
 	orders.Post("/:id/assign", repartidorOrAdmin, h.AssignRepartidor)    // Asignar repartidor
 	orders.Put("/:id/eta", repartidorOrAdmin, h.SetEstimatedArrivalTime) // Establecer ETA
 	orders.Get("/nearby", repartidorOrAdmin, h.FindNearbyOrders)         // Buscar pedidos cercanos
+	orders.Get("/:id/repartidor", h.GetOrderRepartidor)                  // Obtener info del repartidor del pedido
 }

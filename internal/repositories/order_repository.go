@@ -1,6 +1,7 @@
 package repositories
 
 import (
+	"fmt"
 	"math"
 	"time"
 
@@ -45,10 +46,39 @@ func (r *orderRepository) Create(order *models.Order) error {
 func (r *orderRepository) FindByID(id string) (*models.Order, error) {
 	var order models.Order
 
-	if err := r.db.Preload("OrderItems").Preload("OrderItems.Product").
-		Preload("Client").Preload("AssignedRepartidor").
-		Where("order_id = ?", id).First(&order).Error; err != nil {
+	// Cargar orden con relaciones básicas
+	err := r.db.Preload("Client").Preload("AssignedRepartidor").
+		Where("order_id = ?", id).First(&order).Error
+	if err != nil {
 		return nil, err
+	}
+
+	// Cargar OrderItems sin preload de Product primero
+	err = r.db.Where("order_id = ?", id).Find(&order.OrderItems).Error
+	if err != nil {
+		fmt.Printf("ERROR loading OrderItems: %v\n", err)
+		return nil, err
+	}
+
+	// Cargar productos manualmente para cada item
+	for i := range order.OrderItems {
+		var product models.Product
+		err := r.db.Where("product_id = ?", order.OrderItems[i].ProductID).First(&product).Error
+		if err != nil {
+			fmt.Printf("ERROR loading product %s: %v\n", order.OrderItems[i].ProductID, err)
+			// Crear producto vacío para evitar errores
+			order.OrderItems[i].Product = models.Product{}
+		} else {
+			fmt.Printf("SUCCESS: Product loaded - Name: '%s', Price: %.2f\n", product.Name, product.Price)
+			order.OrderItems[i].Product = product
+		}
+	}
+
+	// Debug final
+	fmt.Printf("DEBUG: Order %s has %d items\n", order.OrderID, len(order.OrderItems))
+	for i, item := range order.OrderItems {
+		fmt.Printf("DEBUG: Item %d - ProductID: %s, Product Name: '%s'\n", 
+			i, item.ProductID, item.Product.Name)
 	}
 
 	return &order, nil
