@@ -97,8 +97,15 @@ func (h *OrderHandler) CreateOrder(c *fiber.Ctx) error {
 	}
 
 	// Crear el pedido en el modelo
+		clientID, err := uuid.Parse(claims.UserID.String())
+	if err != nil {
+		// Esto no debería ocurrir con un token válido, indica un problema interno.
+		log.Printf("Error crítico: UserID en claims no es un UUID válido: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Error interno del servidor"})
+	}
+
 	order := &models.Order{
-		ClientID:            uuid.MustParse(claims.UserID.String()),
+		ClientID:            clientID,
 		Latitude:            req.Latitude,
 		Longitude:           req.Longitude,
 		DeliveryAddressText: req.DeliveryAddressText,
@@ -109,8 +116,14 @@ func (h *OrderHandler) CreateOrder(c *fiber.Ctx) error {
 	// Convertir los items de la petición al modelo
 	var orderItems []models.OrderItem
 	for _, item := range req.Items {
+		productID, err := uuid.Parse(item.ProductID)
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": fmt.Sprintf("El ID de producto '%s' no es un UUID válido", item.ProductID),
+			})
+		}
 		orderItems = append(orderItems, models.OrderItem{
-			ProductID: uuid.MustParse(item.ProductID),
+			ProductID: productID,
 			Quantity:  item.Quantity,
 		})
 	}
