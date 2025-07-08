@@ -9,9 +9,9 @@ import (
 )
 
 var (
-	ErrUserNotFoundService = errors.New("usuario no encontrado")
-	ErrEmailAlreadyExists  = errors.New("el correo electrónico ya está en uso")
-	ErrPhoneAlreadyExists  = errors.New("el número de teléfono ya está en uso")
+	ErrUserNotFoundService   = errors.New("usuario no encontrado")
+	ErrEmailAlreadyExists    = errors.New("el correo electrónico ya está en uso")
+	ErrPhoneAlreadyExists    = errors.New("el número de teléfono ya está en uso")
 	ErrCannotDeactivateAdmin = errors.New("no se puede desactivar un usuario administrador")
 	ErrCannotDeactivateSelf  = errors.New("no puedes desactivarte a ti mismo")
 )
@@ -109,7 +109,7 @@ func (s *UserService) GetUsersWithPagination(page, pageSize int, roleFilter stri
 // CreateUserAdmin crea un nuevo usuario (solo administradores)
 func (s *UserService) CreateUserAdmin(user *models.User, adminID string) error {
 	log.Printf("Admin %s creando nuevo usuario: %s (%s)", adminID, user.Email, user.UserRole)
-	
+
 	// Verificar si el email ya existe
 	if existingUser, _ := s.repo.FindByEmail(user.Email); existingUser != nil {
 		return ErrEmailAlreadyExists
@@ -128,7 +128,7 @@ func (s *UserService) CreateUserAdmin(user *models.User, adminID string) error {
 // UpdateUserAdmin actualiza un usuario existente (solo administradores)
 func (s *UserService) UpdateUserAdmin(user *models.User, adminID string) error {
 	log.Printf("Admin %s actualizando usuario: %s", adminID, user.UserID.String())
-	
+
 	err := s.repo.Update(user)
 	if err != nil {
 		log.Printf("Error al actualizar usuario %s: %v", user.UserID.String(), err)
@@ -142,7 +142,7 @@ func (s *UserService) UpdateUserAdmin(user *models.User, adminID string) error {
 // ActivateUser activa un usuario
 func (s *UserService) ActivateUser(userID string, adminID string) error {
 	log.Printf("Admin %s activando usuario: %s", adminID, userID)
-	
+
 	user, err := s.repo.FindByID(userID)
 	if err != nil {
 		return ErrUserNotFoundService
@@ -162,7 +162,7 @@ func (s *UserService) ActivateUser(userID string, adminID string) error {
 // DeactivateUser desactiva un usuario con validaciones de seguridad
 func (s *UserService) DeactivateUser(userID string, adminID string) error {
 	log.Printf("Admin %s intentando desactivar usuario: %s", adminID, userID)
-	
+
 	// Obtener el usuario a desactivar
 	user, err := s.repo.FindByID(userID)
 	if err != nil {
@@ -196,7 +196,7 @@ func (s *UserService) DeactivateUser(userID string, adminID string) error {
 // DeleteUserAdmin elimina un usuario (solo administradores)
 func (s *UserService) DeleteUserAdmin(userID string, adminID string) error {
 	log.Printf("Admin %s eliminando usuario: %s", adminID, userID)
-	
+
 	// Verificar que el usuario existe
 	_, err := s.repo.FindByID(userID)
 	if err != nil {

@@ -43,32 +43,32 @@ func (suite *APIPerformanceTestSuite) SetupSuite() {
 	// Test configuration
 	suite.config = &config.Config{
 		JWT: config.JWTConfig{
-			Secret:           "test-jwt-secret-key-for-integration-testing",
-			AccessTokenExp:   15 * time.Minute,
-			RefreshTokenExp:  7 * 24 * time.Hour,
+			Secret:          "test-jwt-secret-key-for-integration-testing",
+			AccessTokenExp:  15 * time.Minute,
+			RefreshTokenExp: 7 * 24 * time.Hour,
 		},
 	}
-	
+
 	// Setup test database with foreign key constraint disabled
 	var err error
 	suite.db, err = gorm.Open(postgres.Open("host=localhost port=5433 user=postgres password=postgres dbname=exactogas_test sslmode=disable"), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Silent),
+		Logger:                                   logger.Default.LogMode(logger.Silent),
 		DisableForeignKeyConstraintWhenMigrating: true,
 	})
 	if err != nil {
 		suite.T().Skip("PostgreSQL not available for integration testing")
 		return
 	}
-	
+
 	// Auto-migrate
 	err = suite.db.AutoMigrate(&models.User{}, &models.Product{}, &models.Order{}, &models.OrderItem{})
 	require.NoError(suite.T(), err)
-	
+
 	// Create repositories
 	userRepo := repositories.NewUserRepository(suite.db)
 	productRepo := repositories.NewProductRepository(suite.db)
 	orderRepo := repositories.NewOrderRepository(suite.db)
-	
+
 	// Create services
 	suite.authService = auth.NewService(suite.db, suite.config)
 	suite.userService = services.NewUserService(userRepo)
@@ -81,7 +81,7 @@ func (suite *APIPerformanceTestSuite) SetupSuite() {
 		suite.config,
 		nil, // websocket hub
 	)
-	
+
 	// Setup Fiber app with routes
 	suite.app = fiber.New(fiber.Config{
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
@@ -90,10 +90,10 @@ func (suite *APIPerformanceTestSuite) SetupSuite() {
 			})
 		},
 	})
-	
+
 	// Setup routes with proper services
 	v1.SetupRoutes(suite.app, suite.authService, suite.userService, suite.productService, suite.orderService)
-	
+
 	// Create test user and get token
 	suite.setupTestUser()
 }
@@ -101,7 +101,7 @@ func (suite *APIPerformanceTestSuite) SetupSuite() {
 func (suite *APIPerformanceTestSuite) setupTestUser() {
 	// Clean database
 	suite.db.Where("1 = 1").Delete(&models.User{})
-	
+
 	// Create test user
 	user, err := suite.authService.RegisterUser(
 		"performance@test.com",
@@ -111,7 +111,7 @@ func (suite *APIPerformanceTestSuite) setupTestUser() {
 		models.UserRoleClient,
 	)
 	require.NoError(suite.T(), err)
-	
+
 	// Get token
 	tokenPair, err := suite.authService.Login(user.Email, "password123")
 	require.NoError(suite.T(), err)
@@ -133,26 +133,26 @@ func (suite *APIPerformanceTestSuite) TearDownSuite() {
 func (suite *APIPerformanceTestSuite) TestHealthEndpoint() {
 	// Test health endpoint exists and responds quickly
 	start := time.Now()
-	
+
 	req := httptest.NewRequest("GET", "/api/v1/health", nil)
 	resp, err := suite.app.Test(req)
 	require.NoError(suite.T(), err)
 	defer resp.Body.Close()
-	
+
 	duration := time.Since(start)
-	
+
 	// Should respond quickly
-	assert.Less(suite.T(), duration, 100*time.Millisecond, 
+	assert.Less(suite.T(), duration, 100*time.Millisecond,
 		"Health endpoint should respond in <100ms, took: %v", duration)
-	
+
 	// Should return 200 OK
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
-	
+
 	// Should return valid JSON
 	var response map[string]interface{}
 	err = json.NewDecoder(resp.Body).Decode(&response)
 	require.NoError(suite.T(), err)
-	
+
 	// Should contain status field
 	assert.Contains(suite.T(), response, "status")
 	assert.Equal(suite.T(), "ok", response["status"])
@@ -160,13 +160,13 @@ func (suite *APIPerformanceTestSuite) TestHealthEndpoint() {
 
 func (suite *APIPerformanceTestSuite) TestAPIResponseTimes() {
 	testCases := []struct {
-		name           string
-		method         string
-		endpoint       string
-		payload        interface{}
-		useAuth        bool
-		maxDuration    time.Duration
-		description    string
+		name        string
+		method      string
+		endpoint    string
+		payload     interface{}
+		useAuth     bool
+		maxDuration time.Duration
+		description string
 	}{
 		{
 			name:        "Health check",
@@ -234,7 +234,7 @@ func (suite *APIPerformanceTestSuite) TestAPIResponseTimes() {
 			start := time.Now()
 			resp, err := suite.app.Test(req)
 			duration := time.Since(start)
-			
+
 			require.NoError(t, err)
 			defer resp.Body.Close()
 
@@ -273,13 +273,13 @@ func (suite *APIPerformanceTestSuite) TestConcurrentRequests() {
 
 			for j := 0; j < requestsPerWorker; j++ {
 				reqStart := time.Now()
-				
+
 				req := httptest.NewRequest("GET", "/api/v1/users/me", nil)
 				req.Header.Set("Authorization", "Bearer "+suite.testToken)
-				
+
 				resp, err := suite.app.Test(req)
 				reqDuration := time.Since(reqStart)
-				
+
 				mutex.Lock()
 				if err != nil || resp.StatusCode >= 500 {
 					errors++
@@ -287,7 +287,7 @@ func (suite *APIPerformanceTestSuite) TestConcurrentRequests() {
 					results = append(results, reqDuration)
 				}
 				mutex.Unlock()
-				
+
 				if resp != nil {
 					resp.Body.Close()
 				}
@@ -336,11 +336,11 @@ func (suite *APIPerformanceTestSuite) TestConcurrentRequests() {
 
 func (suite *APIPerformanceTestSuite) TestDatabaseConnectionPerformance() {
 	// Test that database queries are reasonably fast
-	
+
 	// Get user ID from token first
 	claims, err := suite.authService.ValidateToken(suite.testToken)
 	require.NoError(suite.T(), err)
-	
+
 	testCases := []struct {
 		name        string
 		operation   func() error
@@ -384,20 +384,20 @@ func (suite *APIPerformanceTestSuite) TestDatabaseConnectionPerformance() {
 func (suite *APIPerformanceTestSuite) TestMemoryUsage() {
 	// Simple memory usage test - create many requests and ensure no major leaks
 	var initialStats, finalStats = new(interface{}), new(interface{})
-	
+
 	// This is a basic test - in production you'd use proper memory profiling
 	numRequests := 100
-	
+
 	for i := 0; i < numRequests; i++ {
 		req := httptest.NewRequest("GET", "/api/v1/health", nil)
 		resp, err := suite.app.Test(req)
 		require.NoError(suite.T(), err)
 		resp.Body.Close()
 	}
-	
+
 	// Basic assertion - we completed all requests without panicking
 	assert.True(suite.T(), true, "Completed %d requests without memory issues", numRequests)
-	
+
 	// In a real scenario, you would measure actual memory usage here
 	_ = initialStats
 	_ = finalStats

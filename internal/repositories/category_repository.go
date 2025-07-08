@@ -35,7 +35,7 @@ func (r *categoryRepository) Create(category *models.Category) error {
 			VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())`,
 			category.CategoryID, category.Name, category.Description, category.IconName, category.ColorHex, false).Error
 	}
-	
+
 	// For active categories, use standard GORM create
 	return r.db.Create(category).Error
 }

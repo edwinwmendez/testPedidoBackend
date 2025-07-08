@@ -1,0 +1,89 @@
+# Dockerfile para desarrollo local - appTestPedido
+# Optimizado para recarga rápida y debugging
+
+FROM golang:1.24-bookworm AS base
+
+# Metadatos
+LABEL maintainer="ExactoGas Team"
+LABEL description="ExactoGas API - Desarrollo con hot reload"
+
+# Variables de entorno
+ENV GO111MODULE=on \
+    CGO_ENABLED=0 \
+    GOOS=linux \
+    GOARCH=amd64
+
+# Instalar dependencias del sistema
+RUN apt-get update && apt-get install -y \
+    postgresql-client \
+    curl \
+    netcat-openbsd \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Crear directorio de trabajo
+WORKDIR /app
+
+# Copiar go.mod y go.sum PRIMERO (como root para evitar problemas de permisos)
+COPY go.mod go.sum ./
+
+# Descargar dependencias (como root)
+RUN go mod download && go mod verify
+
+# Instalar air y swag para hot reload (como root)
+RUN go install github.com/air-verse/air@latest
+RUN go install github.com/swaggo/swag/cmd/swag@latest
+
+# Crear usuario no-root DESPUÉS de instalar dependencias
+RUN useradd --create-home --shell /bin/bash gouser
+
+# Cambiar ownership de TODO el directorio Go y app
+RUN chown -R gouser:gouser /app
+RUN chown -R gouser:gouser /go
+
+# Cambiar a usuario no-root AL FINAL
+USER gouser
+
+# Asegurar que /go/bin está en el PATH del usuario
+ENV PATH="/go/bin:${PATH}"
+
+# Configuración de Air para hot reload
+RUN echo '[build]\n\
+  cmd = "go build -o ./tmp/main ."\n\
+  bin = "tmp/main"\n\
+  full_bin = "./tmp/main"\n\
+  include_ext = ["go", "tpl", "tmpl", "html"]\n\
+  exclude_dir = ["assets", "tmp", "vendor", "frontend"]\n\
+  include_dir = []\n\
+  exclude_file = []\n\
+  exclude_regex = ["_test.go"]\n\
+  exclude_unchanged = false\n\
+  follow_symlink = false\n\
+  log = "build-errors.log"\n\
+  delay = 1000\n\
+  stop_on_error = true\n\
+  send_interrupt = false\n\
+  kill_delay = 500\n\
+\n\
+[log]\n\
+  time = false\n\
+\n\
+[color]\n\
+  main = "magenta"\n\
+  watcher = "cyan"\n\
+  build = "yellow"\n\
+  runner = "green"' > .air.toml
+
+# Script de inicio para desarrollo
+COPY --chown=gouser:gouser docker/entrypoint.dev.sh /entrypoint.dev.sh
+
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8080/api/v1/health || exit 1
+
+# Exponer puerto
+EXPOSE 8080
+
+# Punto de entrada
+ENTRYPOINT ["/entrypoint.dev.sh"]
+CMD ["air", "-c", ".air.toml"]

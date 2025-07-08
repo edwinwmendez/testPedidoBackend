@@ -85,14 +85,14 @@ func (h *ProductHandler) GetProductByID(c *fiber.Ctx) error {
 
 // CreateProductRequest estructura para crear un producto
 type CreateProductRequest struct {
-	Name          string  `json:"name" validate:"required"`
-	Description   string  `json:"description"`
-	DetailedDescription string `json:"detailed_description"`
-	Price         float64 `json:"price" validate:"required,min=0"`
-	ImageURL      string  `json:"image_url"`
-	UnitOfMeasure string  `json:"unit_of_measure"`
-	StockQuantity int     `json:"stock_quantity" validate:"min=0"`
-	IsActive      bool    `json:"is_active"`
+	Name                string  `json:"name" validate:"required"`
+	Description         string  `json:"description"`
+	DetailedDescription string  `json:"detailed_description"`
+	Price               float64 `json:"price" validate:"required,min=0"`
+	ImageURL            string  `json:"image_url"`
+	UnitOfMeasure       string  `json:"unit_of_measure"`
+	StockQuantity       int     `json:"stock_quantity" validate:"min=0"`
+	IsActive            bool    `json:"is_active"`
 }
 
 // CreateProduct crea un nuevo producto (solo para administradores)
@@ -127,14 +127,14 @@ func (h *ProductHandler) CreateProduct(c *fiber.Ctx) error {
 
 	// Crear el producto en el modelo
 	product := &models.Product{
-		Name:          req.Name,
-		Description:   req.Description,
+		Name:                req.Name,
+		Description:         req.Description,
 		DetailedDescription: req.DetailedDescription,
-		Price:         req.Price,
-		ImageURL:      req.ImageURL,
-		UnitOfMeasure: req.UnitOfMeasure,
-		StockQuantity: req.StockQuantity,
-		IsActive:      req.IsActive,
+		Price:               req.Price,
+		ImageURL:            req.ImageURL,
+		UnitOfMeasure:       req.UnitOfMeasure,
+		StockQuantity:       req.StockQuantity,
+		IsActive:            req.IsActive,
 	}
 
 	// Crear el producto usando el servicio
@@ -149,15 +149,15 @@ func (h *ProductHandler) CreateProduct(c *fiber.Ctx) error {
 
 // UpdateProductRequest estructura para actualizar un producto
 type UpdateProductRequest struct {
-	Name          string  `json:"name,omitempty"`
-	Description   string  `json:"description,omitempty"`
-	DetailedDescription string `json:"detailed_description,omitempty"`
-	Price         float64 `json:"price,omitempty" validate:"omitempty,min=0"`
-	CategoryID    string  `json:"category_id,omitempty"`
-	ImageURL      string  `json:"image_url,omitempty"`
-	UnitOfMeasure string  `json:"unit_of_measure,omitempty"`
-	StockQuantity *int    `json:"stock_quantity,omitempty" validate:"omitempty,min=0"`
-	IsActive      *bool   `json:"is_active,omitempty"`
+	Name                string  `json:"name,omitempty"`
+	Description         string  `json:"description,omitempty"`
+	DetailedDescription string  `json:"detailed_description,omitempty"`
+	Price               float64 `json:"price,omitempty" validate:"omitempty,min=0"`
+	CategoryID          string  `json:"category_id,omitempty"`
+	ImageURL            string  `json:"image_url,omitempty"`
+	UnitOfMeasure       string  `json:"unit_of_measure,omitempty"`
+	StockQuantity       *int    `json:"stock_quantity,omitempty" validate:"omitempty,min=0"`
+	IsActive            *bool   `json:"is_active,omitempty"`
 }
 
 // UpdateProduct actualiza un producto existente (solo para administradores)
@@ -301,7 +301,7 @@ func (h *ProductHandler) DeleteProduct(c *fiber.Ctx) error {
 func (h *ProductHandler) GetPopularProducts(c *fiber.Ctx) error {
 	// Obtener parámetro limit con valor por defecto
 	limit := c.QueryInt("limit", 5)
-	
+
 	products, err := h.productService.GetPopular(limit)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -325,7 +325,7 @@ func (h *ProductHandler) GetPopularProducts(c *fiber.Ctx) error {
 func (h *ProductHandler) GetRecentProducts(c *fiber.Ctx) error {
 	// Obtener parámetro limit con valor por defecto
 	limit := c.QueryInt("limit", 5)
-	
+
 	products, err := h.productService.GetRecent(limit)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
@@ -350,14 +350,14 @@ func (h *ProductHandler) GetRecentProducts(c *fiber.Ctx) error {
 // @Router /products/{id}/view [post]
 func (h *ProductHandler) IncrementProductView(c *fiber.Ctx) error {
 	productID := c.Params("id")
-	
+
 	// Validar UUID
 	if _, err := uuid.Parse(productID); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "ID de producto inválido",
 		})
 	}
-	
+
 	if err := h.productService.IncrementViewCount(productID); err != nil {
 		if err == services.ErrProductNotFoundService {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
@@ -368,7 +368,7 @@ func (h *ProductHandler) IncrementProductView(c *fiber.Ctx) error {
 			"error": "Error al incrementar vistas",
 		})
 	}
-	
+
 	return c.JSON(fiber.Map{
 		"message": "Vista registrada correctamente",
 	})

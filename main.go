@@ -30,7 +30,7 @@ func main() {
 	docs.SwaggerInfo.Title = "PedidoMendez API"
 	docs.SwaggerInfo.Description = "API para la aplicación de tienda en línea PedidoMendez"
 	docs.SwaggerInfo.Version = "1.0"
-	
+
 	// Configurar host dinámicamente para Render.com
 	if os.Getenv("RENDER") == "true" {
 		docs.SwaggerInfo.Host = "" // Render maneja esto automáticamente

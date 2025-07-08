@@ -29,19 +29,19 @@ type UpdateUserRequest struct {
 
 // CreateUserRequest estructura para crear un usuario (admin)
 type CreateUserRequest struct {
-	Email       string            `json:"email" validate:"required,email"`
-	Password    string            `json:"password" validate:"required,min=6"`
-	FullName    string            `json:"full_name" validate:"required"`
-	PhoneNumber string            `json:"phone_number" validate:"required"`
-	UserRole    models.UserRole   `json:"user_role" validate:"required"`
+	Email       string          `json:"email" validate:"required,email"`
+	Password    string          `json:"password" validate:"required,min=6"`
+	FullName    string          `json:"full_name" validate:"required"`
+	PhoneNumber string          `json:"phone_number" validate:"required"`
+	UserRole    models.UserRole `json:"user_role" validate:"required"`
 }
 
 // UpdateUserAdminRequest estructura para actualizar un usuario (admin)
 type UpdateUserAdminRequest struct {
-	Email       string            `json:"email,omitempty"`
-	FullName    string            `json:"full_name,omitempty"`
-	PhoneNumber string            `json:"phone_number,omitempty"`
-	UserRole    models.UserRole   `json:"user_role,omitempty"`
+	Email       string          `json:"email,omitempty"`
+	FullName    string          `json:"full_name,omitempty"`
+	PhoneNumber string          `json:"phone_number,omitempty"`
+	UserRole    models.UserRole `json:"user_role,omitempty"`
 }
 
 // @Summary Obtener perfil de usuario actual
@@ -548,10 +548,10 @@ func (h *UserHandler) RegisterRoutes(router fiber.Router, authMiddleware fiber.H
 	adminUsers := admin.Group("/users")
 
 	// Endpoints de administración de usuarios
-	adminUsers.Get("/", h.GetAllUsersAdmin)              // GET /admin/users
-	adminUsers.Post("/", h.CreateUserAdmin)              // POST /admin/users
-	adminUsers.Put("/:id", h.UpdateUserAdmin)            // PUT /admin/users/{id}
-	adminUsers.Put("/:id/activate", h.ActivateUserAdmin) // PUT /admin/users/{id}/activate
+	adminUsers.Get("/", h.GetAllUsersAdmin)                  // GET /admin/users
+	adminUsers.Post("/", h.CreateUserAdmin)                  // POST /admin/users
+	adminUsers.Put("/:id", h.UpdateUserAdmin)                // PUT /admin/users/{id}
+	adminUsers.Put("/:id/activate", h.ActivateUserAdmin)     // PUT /admin/users/{id}/activate
 	adminUsers.Put("/:id/deactivate", h.DeactivateUserAdmin) // PUT /admin/users/{id}/deactivate
-	adminUsers.Delete("/:id", h.DeleteUserAdmin)         // DELETE /admin/users/{id}
+	adminUsers.Delete("/:id", h.DeleteUserAdmin)             // DELETE /admin/users/{id}
 }

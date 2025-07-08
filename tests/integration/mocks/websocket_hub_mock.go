@@ -33,7 +33,7 @@ func NewMockWebSocketHub() *MockWebSocketHub {
 func (m *MockWebSocketHub) SendToUser(userID string, msg ws.Message) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	if m.UserMessages[userID] == nil {
 		m.UserMessages[userID] = make([]ws.Message, 0)
 	}
@@ -44,7 +44,7 @@ func (m *MockWebSocketHub) SendToUser(userID string, msg ws.Message) {
 func (m *MockWebSocketHub) SendToRole(role string, msg ws.Message) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	if m.RoleMessages[role] == nil {
 		m.RoleMessages[role] = make([]ws.Message, 0)
 	}
@@ -55,7 +55,7 @@ func (m *MockWebSocketHub) SendToRole(role string, msg ws.Message) {
 func (m *MockWebSocketHub) Broadcast(msg ws.Message) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	m.BroadcastMessages = append(m.BroadcastMessages, msg)
 }
 
@@ -63,7 +63,7 @@ func (m *MockWebSocketHub) Broadcast(msg ws.Message) {
 func (m *MockWebSocketHub) GetMessagesForUser(userID string) []ws.Message {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	if messages, exists := m.UserMessages[userID]; exists {
 		// Return a copy to avoid race conditions
 		result := make([]ws.Message, len(messages))
@@ -77,7 +77,7 @@ func (m *MockWebSocketHub) GetMessagesForUser(userID string) []ws.Message {
 func (m *MockWebSocketHub) GetMessagesForRole(role string) []ws.Message {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	if messages, exists := m.RoleMessages[role]; exists {
 		// Return a copy to avoid race conditions
 		result := make([]ws.Message, len(messages))
@@ -91,7 +91,7 @@ func (m *MockWebSocketHub) GetMessagesForRole(role string) []ws.Message {
 func (m *MockWebSocketHub) GetBroadcastMessages() []ws.Message {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	// Return a copy to avoid race conditions
 	result := make([]ws.Message, len(m.BroadcastMessages))
 	copy(result, m.BroadcastMessages)
@@ -102,7 +102,7 @@ func (m *MockWebSocketHub) GetBroadcastMessages() []ws.Message {
 func (m *MockWebSocketHub) Reset() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	
+
 	m.UserMessages = make(map[string][]ws.Message)
 	m.RoleMessages = make(map[string][]ws.Message)
 	m.BroadcastMessages = make([]ws.Message, 0)
@@ -112,16 +112,16 @@ func (m *MockWebSocketHub) Reset() {
 func (m *MockWebSocketHub) GetMessageCount() int {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
-	
+
 	count := len(m.BroadcastMessages)
-	
+
 	for _, messages := range m.UserMessages {
 		count += len(messages)
 	}
-	
+
 	for _, messages := range m.RoleMessages {
 		count += len(messages)
 	}
-	
+
 	return count
 }

@@ -26,12 +26,12 @@ type CreateOrderItemRequest struct {
 }
 
 type CreateOrderRequest struct {
-	ClientID            string                    `json:"client_id"`
+	ClientID            string                   `json:"client_id"`
 	Items               []CreateOrderItemRequest `json:"items"`
-	Latitude            float64                   `json:"latitude"`
-	Longitude           float64                   `json:"longitude"`
-	DeliveryAddressText string                    `json:"delivery_address_text"`
-	PaymentNote         string                    `json:"payment_note"`
+	Latitude            float64                  `json:"latitude"`
+	Longitude           float64                  `json:"longitude"`
+	DeliveryAddressText string                   `json:"delivery_address_text"`
+	PaymentNote         string                   `json:"payment_note"`
 }
 
 // Helper function to convert CreateOrderRequest to models
@@ -40,7 +40,7 @@ func (req *CreateOrderRequest) ToModels() (*models.Order, []models.OrderItem, er
 	if err != nil {
 		return nil, nil, err
 	}
-	
+
 	order := &models.Order{
 		ClientID:            clientID,
 		Latitude:            req.Latitude,
@@ -48,40 +48,40 @@ func (req *CreateOrderRequest) ToModels() (*models.Order, []models.OrderItem, er
 		DeliveryAddressText: req.DeliveryAddressText,
 		PaymentNote:         req.PaymentNote,
 	}
-	
+
 	items := make([]models.OrderItem, len(req.Items))
 	for i, item := range req.Items {
 		productID, err := uuid.Parse(item.ProductID)
 		if err != nil {
 			return nil, nil, err
 		}
-		
+
 		items[i] = models.OrderItem{
 			ProductID: productID,
 			Quantity:  item.Quantity,
 		}
 	}
-	
+
 	return order, items, nil
 }
 
 // OrderServiceRoleTestSuite tests order service with role-based permissions using real database
 type OrderServiceRoleTestSuite struct {
 	suite.Suite
-	db            *gorm.DB
-	config        *config.Config
-	authService   auth.Service
-	orderService  *services.OrderService
-	userService   *services.UserService
+	db             *gorm.DB
+	config         *config.Config
+	authService    auth.Service
+	orderService   *services.OrderService
+	userService    *services.UserService
 	productService *services.ProductService
-	
+
 	// Test users for each role
-	clientUser      *models.User
-	repartidorUser  *models.User
-	adminUser       *models.User
-	
+	clientUser     *models.User
+	repartidorUser *models.User
+	adminUser      *models.User
+
 	// Test data
-	testProduct     *models.Product
+	testProduct *models.Product
 }
 
 // SetupSuite runs once before the test suite
@@ -97,46 +97,46 @@ func (suite *OrderServiceRoleTestSuite) SetupSuite() {
 			SSLMode:  "disable",
 		},
 		JWT: config.JWTConfig{
-			Secret:           "test-jwt-secret-key",
-			AccessTokenExp:   15 * time.Minute,
-			RefreshTokenExp:  7 * 24 * time.Hour,
+			Secret:          "test-jwt-secret-key",
+			AccessTokenExp:  15 * time.Minute,
+			RefreshTokenExp: 7 * 24 * time.Hour,
 		},
 		App: config.AppConfig{
 			BusinessHoursStart: 6 * time.Hour,  // 6 AM
 			BusinessHoursEnd:   20 * time.Hour, // 8 PM
-			TimeZone:          "America/Lima",
+			TimeZone:           "America/Lima",
 		},
 	}
-	
+
 	// Connect to test database with foreign key constraint disabled
 	var err error
 	suite.db, err = gorm.Open(postgres.Open(suite.config.Database.GetDSN()), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Silent),
+		Logger:                                   logger.Default.LogMode(logger.Silent),
 		DisableForeignKeyConstraintWhenMigrating: true,
 	})
 	if err != nil {
 		suite.T().Skip("PostgreSQL test database not available")
 		return
 	}
-	
+
 	// Auto-migrate
 	err = suite.db.AutoMigrate(&models.User{}, &models.Product{}, &models.Order{}, &models.OrderItem{})
 	require.NoError(suite.T(), err)
-	
+
 	// Drop any incorrect foreign key constraints that GORM might have created
 	suite.db.Exec("ALTER TABLE products DROP CONSTRAINT IF EXISTS fk_order_items_product")
 	suite.db.Exec("ALTER TABLE order_items DROP CONSTRAINT IF EXISTS fk_order_items_product")
-	
+
 	// Create services
 	suite.authService = auth.NewService(suite.db, suite.config)
-	
+
 	userRepo := repositories.NewUserRepository(suite.db)
 	productRepo := repositories.NewProductRepository(suite.db)
 	orderRepo := repositories.NewOrderRepository(suite.db)
-	
+
 	suite.userService = services.NewUserService(userRepo)
 	suite.productService = services.NewProductService(productRepo)
-	
+
 	// Create order service with proper dependencies (mocked notification and ws services for simplicity)
 	suite.orderService = services.NewOrderService(
 		orderRepo,
@@ -152,11 +152,11 @@ func (suite *OrderServiceRoleTestSuite) SetupSuite() {
 func (suite *OrderServiceRoleTestSuite) SetupTest() {
 	// Clean database
 	suite.db.Exec("TRUNCATE TABLE order_items, orders, products, users RESTART IDENTITY CASCADE")
-	
+
 	// Also clean any seed data that might have been inserted by migrations
 	suite.db.Exec("DELETE FROM products WHERE name LIKE 'Balón de Gas%'")
 	suite.db.Exec("DELETE FROM users WHERE email = 'admin@exactogas.com'")
-	
+
 	// Create test users for each role
 	suite.createTestUsers()
 	suite.createTestProduct()
@@ -173,10 +173,10 @@ func (suite *OrderServiceRoleTestSuite) TearDownSuite() {
 
 func (suite *OrderServiceRoleTestSuite) createTestUsers() {
 	var err error
-	
+
 	// Use timestamp to make emails unique across test runs
 	timestamp := time.Now().UnixNano()
-	
+
 	// Create CLIENT user
 	suite.clientUser, err = suite.authService.RegisterUser(
 		fmt.Sprintf("client%d@test.com", timestamp),
@@ -186,7 +186,7 @@ func (suite *OrderServiceRoleTestSuite) createTestUsers() {
 		models.UserRoleClient,
 	)
 	require.NoError(suite.T(), err)
-	
+
 	// Create REPARTIDOR user
 	suite.repartidorUser, err = suite.authService.RegisterUser(
 		fmt.Sprintf("repartidor%d@test.com", timestamp),
@@ -196,7 +196,7 @@ func (suite *OrderServiceRoleTestSuite) createTestUsers() {
 		models.UserRoleRepartidor,
 	)
 	require.NoError(suite.T(), err)
-	
+
 	// Create ADMIN user
 	suite.adminUser, err = suite.authService.RegisterUser(
 		fmt.Sprintf("admin%d@test.com", timestamp),
@@ -215,7 +215,7 @@ func (suite *OrderServiceRoleTestSuite) createTestProduct() {
 		Price:       45.50,
 		IsActive:    true,
 	}
-	
+
 	err := suite.productService.Create(suite.testProduct)
 	require.NoError(suite.T(), err)
 }
@@ -230,12 +230,12 @@ func (suite *OrderServiceRoleTestSuite) createTestOrder(clientID string, items [
 		DeliveryAddressText: "Av. Test 123, Lima",
 		PaymentNote:         "Billete de 50 soles",
 	}
-	
+
 	orderModel, itemsModel, err := createReq.ToModels()
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return suite.orderService.CreateOrder(orderModel, itemsModel)
 }
 
@@ -247,14 +247,14 @@ func (suite *OrderServiceRoleTestSuite) TestCreateOrder_ClientRole() {
 			Quantity:  2,
 		},
 	}
-	
+
 	// Client creating their own order - should succeed
 	createdOrder, err := suite.createTestOrder(suite.clientUser.UserID.String(), orderItems)
 	assert.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), createdOrder)
 	assert.Equal(suite.T(), suite.clientUser.UserID, createdOrder.ClientID)
 	assert.Equal(suite.T(), models.OrderStatusPending, createdOrder.OrderStatus)
-	
+
 	// Verify order items were created correctly
 	assert.Len(suite.T(), createdOrder.OrderItems, 1)
 	assert.Equal(suite.T(), 2, createdOrder.OrderItems[0].Quantity)
@@ -269,64 +269,64 @@ func (suite *OrderServiceRoleTestSuite) TestOrderStatusTransitions_ByRole() {
 			Quantity:  1,
 		},
 	}
-	
+
 	order, err := suite.createTestOrder(suite.clientUser.UserID.String(), orderItems)
 	require.NoError(suite.T(), err)
 	orderID := order.OrderID.String()
 
 	// Test 1: CLIENT cannot confirm orders (only cancel their own pending orders)
 	_, err = suite.orderService.UpdateOrderStatus(
-		orderID, 
-		models.OrderStatusConfirmed, 
-		suite.clientUser.UserID.String(), 
+		orderID,
+		models.OrderStatusConfirmed,
+		suite.clientUser.UserID.String(),
 		suite.clientUser.UserRole,
 	)
 	assert.Error(suite.T(), err, "Client should not be able to confirm orders")
-	
+
 	// Test 2: CLIENT can cancel their own pending orders
 	cancelledOrder, err := suite.orderService.UpdateOrderStatus(
-		orderID, 
-		models.OrderStatusCancelled, 
-		suite.clientUser.UserID.String(), 
+		orderID,
+		models.OrderStatusCancelled,
+		suite.clientUser.UserID.String(),
 		suite.clientUser.UserRole,
 	)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), models.OrderStatusCancelled, cancelledOrder.OrderStatus)
 	assert.NotNil(suite.T(), cancelledOrder.CancelledAt)
-	
+
 	// Create a new order for the rest of the tests
 	order, err = suite.createTestOrder(suite.clientUser.UserID.String(), orderItems)
 	require.NoError(suite.T(), err)
 	orderID = order.OrderID.String()
-	
+
 	// Test 3: ADMIN can confirm orders
 	confirmedOrder, err := suite.orderService.UpdateOrderStatus(
-		orderID, 
-		models.OrderStatusConfirmed, 
-		suite.adminUser.UserID.String(), 
+		orderID,
+		models.OrderStatusConfirmed,
+		suite.adminUser.UserID.String(),
 		suite.adminUser.UserRole,
 	)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), models.OrderStatusConfirmed, confirmedOrder.OrderStatus)
 	assert.NotNil(suite.T(), confirmedOrder.ConfirmedAt)
-	
+
 	// Test 4: ADMIN can assign repartidor
 	assignedOrder, err := suite.orderService.AssignRepartidor(orderID, suite.repartidorUser.UserID.String())
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), models.OrderStatusAssigned, assignedOrder.OrderStatus)
 	assert.Equal(suite.T(), suite.repartidorUser.UserID, *assignedOrder.AssignedRepartidorID)
 	assert.NotNil(suite.T(), assignedOrder.AssignedAt)
-	
+
 	// Test 5: Only assigned REPARTIDOR can start transit
 	inTransitOrder, err := suite.orderService.UpdateOrderStatus(
-		orderID, 
-		models.OrderStatusInTransit, 
-		suite.repartidorUser.UserID.String(), 
+		orderID,
+		models.OrderStatusInTransit,
+		suite.repartidorUser.UserID.String(),
 		suite.repartidorUser.UserRole,
 	)
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), models.OrderStatusInTransit, inTransitOrder.OrderStatus)
-	
+
 	// Test 6: Different REPARTIDOR cannot update the order
 	// Create another repartidor
 	otherRepartidor, err := suite.authService.RegisterUser(
@@ -337,20 +337,20 @@ func (suite *OrderServiceRoleTestSuite) TestOrderStatusTransitions_ByRole() {
 		models.UserRoleRepartidor,
 	)
 	require.NoError(suite.T(), err)
-	
+
 	_, err = suite.orderService.UpdateOrderStatus(
-		orderID, 
-		models.OrderStatusDelivered, 
-		otherRepartidor.UserID.String(), 
+		orderID,
+		models.OrderStatusDelivered,
+		otherRepartidor.UserID.String(),
 		otherRepartidor.UserRole,
 	)
 	assert.Error(suite.T(), err, "Different repartidor should not be able to update assigned order")
-	
+
 	// Test 7: Only assigned REPARTIDOR can mark as delivered
 	deliveredOrder, err := suite.orderService.UpdateOrderStatus(
-		orderID, 
-		models.OrderStatusDelivered, 
-		suite.repartidorUser.UserID.String(), 
+		orderID,
+		models.OrderStatusDelivered,
+		suite.repartidorUser.UserID.String(),
 		suite.repartidorUser.UserRole,
 	)
 	assert.NoError(suite.T(), err)
@@ -366,27 +366,27 @@ func (suite *OrderServiceRoleTestSuite) TestRepartidorAutoAssignment() {
 			Quantity:  1,
 		},
 	}
-	
+
 	order, err := suite.createTestOrder(suite.clientUser.UserID.String(), orderItems)
 	require.NoError(suite.T(), err)
-	
+
 	// Verify order is initially unassigned
 	assert.Nil(suite.T(), order.AssignedRepartidorID, "Order should initially be unassigned")
 	assert.Equal(suite.T(), models.OrderStatusPending, order.OrderStatus)
-	
+
 	// REPARTIDOR confirms order (should auto-assign to themselves)
 	confirmedOrder, err := suite.orderService.UpdateOrderStatus(
-		order.OrderID.String(), 
-		models.OrderStatusConfirmed, 
-		suite.repartidorUser.UserID.String(), 
+		order.OrderID.String(),
+		models.OrderStatusConfirmed,
+		suite.repartidorUser.UserID.String(),
 		suite.repartidorUser.UserRole,
 	)
-	
+
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), models.OrderStatusConfirmed, confirmedOrder.OrderStatus)
-	
+
 	// CRITICAL: Verify auto-assignment occurred
-	assert.NotNil(suite.T(), confirmedOrder.AssignedRepartidorID, 
+	assert.NotNil(suite.T(), confirmedOrder.AssignedRepartidorID,
 		"Repartidor should be auto-assigned when confirming order")
 	assert.Equal(suite.T(), suite.repartidorUser.UserID, *confirmedOrder.AssignedRepartidorID,
 		"The repartidor who confirmed should be auto-assigned")
@@ -402,27 +402,27 @@ func (suite *OrderServiceRoleTestSuite) TestAdminNoAutoAssignment() {
 			Quantity:  1,
 		},
 	}
-	
+
 	order, err := suite.createTestOrder(suite.clientUser.UserID.String(), orderItems)
 	require.NoError(suite.T(), err)
-	
+
 	// Verify order is initially unassigned
 	assert.Nil(suite.T(), order.AssignedRepartidorID, "Order should initially be unassigned")
 	assert.Equal(suite.T(), models.OrderStatusPending, order.OrderStatus)
-	
+
 	// ADMIN confirms order (should NOT auto-assign to themselves)
 	confirmedOrder, err := suite.orderService.UpdateOrderStatus(
-		order.OrderID.String(), 
-		models.OrderStatusConfirmed, 
-		suite.adminUser.UserID.String(), 
+		order.OrderID.String(),
+		models.OrderStatusConfirmed,
+		suite.adminUser.UserID.String(),
 		suite.adminUser.UserRole,
 	)
-	
+
 	assert.NoError(suite.T(), err)
 	assert.Equal(suite.T(), models.OrderStatusConfirmed, confirmedOrder.OrderStatus)
-	
+
 	// CRITICAL: Verify NO auto-assignment occurred for admin
-	assert.Nil(suite.T(), confirmedOrder.AssignedRepartidorID, 
+	assert.Nil(suite.T(), confirmedOrder.AssignedRepartidorID,
 		"Admin should NOT be auto-assigned when confirming order")
 	assert.Nil(suite.T(), confirmedOrder.AssignedAt, "AssignedAt should be nil for admin confirmation")
 	assert.NotNil(suite.T(), confirmedOrder.ConfirmedAt, "ConfirmedAt timestamp should be set")
@@ -436,22 +436,22 @@ func (suite *OrderServiceRoleTestSuite) TestSetEstimatedArrivalTime_Permissions(
 			Quantity:  1,
 		},
 	}
-	
+
 	order, err := suite.createTestOrder(suite.clientUser.UserID.String(), orderItems)
 	require.NoError(suite.T(), err)
-	
+
 	// Confirm and assign order
 	_, err = suite.orderService.UpdateOrderStatus(
-		order.OrderID.String(), 
-		models.OrderStatusConfirmed, 
-		suite.adminUser.UserID.String(), 
+		order.OrderID.String(),
+		models.OrderStatusConfirmed,
+		suite.adminUser.UserID.String(),
 		suite.adminUser.UserRole,
 	)
 	require.NoError(suite.T(), err)
-	
+
 	assignedOrder, err := suite.orderService.AssignRepartidor(order.OrderID.String(), suite.repartidorUser.UserID.String())
 	require.NoError(suite.T(), err)
-	
+
 	// Test ETA setting by assigned repartidor
 	eta := time.Now().Add(30 * time.Minute)
 	updatedOrder, err := suite.orderService.SetEstimatedArrivalTime(assignedOrder.OrderID.String(), eta)
@@ -468,63 +468,63 @@ func (suite *OrderServiceRoleTestSuite) TestOrderPermissionsMatrix() {
 			Quantity:  1,
 		},
 	}
-	
+
 	// Permission matrix for PENDING state
 	testCases := []struct {
-		name           string
-		userRole       models.UserRole
-		userID         string
-		targetStatus   models.OrderStatus
-		shouldSucceed  bool
-		description    string
+		name          string
+		userRole      models.UserRole
+		userID        string
+		targetStatus  models.OrderStatus
+		shouldSucceed bool
+		description   string
 	}{
 		{
-			name:         "Client cancel own pending order",
-			userRole:     models.UserRoleClient,
-			userID:       suite.clientUser.UserID.String(),
-			targetStatus: models.OrderStatusCancelled,
+			name:          "Client cancel own pending order",
+			userRole:      models.UserRoleClient,
+			userID:        suite.clientUser.UserID.String(),
+			targetStatus:  models.OrderStatusCancelled,
 			shouldSucceed: true,
-			description:  "Clients should be able to cancel their own pending orders",
+			description:   "Clients should be able to cancel their own pending orders",
 		},
 		{
-			name:         "Client confirm order (invalid)",
-			userRole:     models.UserRoleClient,
-			userID:       suite.clientUser.UserID.String(),
-			targetStatus: models.OrderStatusConfirmed,
+			name:          "Client confirm order (invalid)",
+			userRole:      models.UserRoleClient,
+			userID:        suite.clientUser.UserID.String(),
+			targetStatus:  models.OrderStatusConfirmed,
 			shouldSucceed: false,
-			description:  "Clients should not be able to confirm orders",
+			description:   "Clients should not be able to confirm orders",
 		},
 		{
-			name:         "Repartidor confirm order",
-			userRole:     models.UserRoleRepartidor,
-			userID:       suite.repartidorUser.UserID.String(),
-			targetStatus: models.OrderStatusConfirmed,
+			name:          "Repartidor confirm order",
+			userRole:      models.UserRoleRepartidor,
+			userID:        suite.repartidorUser.UserID.String(),
+			targetStatus:  models.OrderStatusConfirmed,
 			shouldSucceed: true,
-			description:  "Repartidores should be able to confirm orders",
+			description:   "Repartidores should be able to confirm orders",
 		},
 		{
-			name:         "Admin confirm order",
-			userRole:     models.UserRoleAdmin,
-			userID:       suite.adminUser.UserID.String(),
-			targetStatus: models.OrderStatusConfirmed,
+			name:          "Admin confirm order",
+			userRole:      models.UserRoleAdmin,
+			userID:        suite.adminUser.UserID.String(),
+			targetStatus:  models.OrderStatusConfirmed,
 			shouldSucceed: true,
-			description:  "Admins should be able to confirm orders",
+			description:   "Admins should be able to confirm orders",
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		suite.T().Run(tc.name, func(t *testing.T) {
 			// Create fresh order for each test
 			newOrder, err := suite.createTestOrder(suite.clientUser.UserID.String(), orderItems)
 			require.NoError(t, err)
-			
+
 			_, err = suite.orderService.UpdateOrderStatus(
 				newOrder.OrderID.String(),
 				tc.targetStatus,
 				tc.userID,
 				tc.userRole,
 			)
-			
+
 			if tc.shouldSucceed {
 				assert.NoError(t, err, tc.description)
 			} else {
@@ -544,22 +544,22 @@ func (suite *OrderServiceRoleTestSuite) TestOrderOperationsSecurity() {
 		models.UserRoleClient,
 	)
 	require.NoError(suite.T(), err)
-	
+
 	orderItems := []CreateOrderItemRequest{
 		{
 			ProductID: suite.testProduct.ProductID.String(),
 			Quantity:  1,
 		},
 	}
-	
+
 	// Client 1's order
 	order1, err := suite.createTestOrder(suite.clientUser.UserID.String(), orderItems)
 	require.NoError(suite.T(), err)
-	
+
 	// Client 2's order
 	order2, err := suite.createTestOrder(client2.UserID.String(), orderItems)
 	require.NoError(suite.T(), err)
-	
+
 	// Test: Client 1 should NOT be able to cancel Client 2's order
 	_, err = suite.orderService.UpdateOrderStatus(
 		order2.OrderID.String(),
@@ -568,7 +568,7 @@ func (suite *OrderServiceRoleTestSuite) TestOrderOperationsSecurity() {
 		suite.clientUser.UserRole,
 	)
 	assert.Error(suite.T(), err, "Client should not be able to cancel other client's orders")
-	
+
 	// Test: Client 1 CAN cancel their own order
 	_, err = suite.orderService.UpdateOrderStatus(
 		order1.OrderID.String(),
@@ -587,57 +587,57 @@ func (suite *OrderServiceRoleTestSuite) TestCompleteOrderWorkflow() {
 			Quantity:  2,
 		},
 	}
-	
+
 	// Step 1: Client creates order
 	order, err := suite.createTestOrder(suite.clientUser.UserID.String(), orderItems)
 	require.NoError(suite.T(), err)
 	assert.Equal(suite.T(), models.OrderStatusPending, order.OrderStatus)
-	
+
 	orderID := order.OrderID.String()
-	
+
 	// Step 2: Admin confirms order
 	order, err = suite.orderService.UpdateOrderStatus(
-		orderID, 
-		models.OrderStatusConfirmed, 
-		suite.adminUser.UserID.String(), 
+		orderID,
+		models.OrderStatusConfirmed,
+		suite.adminUser.UserID.String(),
 		suite.adminUser.UserRole,
 	)
 	require.NoError(suite.T(), err)
 	assert.Equal(suite.T(), models.OrderStatusConfirmed, order.OrderStatus)
-	
+
 	// Step 3: Admin assigns repartidor
 	order, err = suite.orderService.AssignRepartidor(orderID, suite.repartidorUser.UserID.String())
 	require.NoError(suite.T(), err)
 	assert.Equal(suite.T(), models.OrderStatusAssigned, order.OrderStatus)
 	assert.Equal(suite.T(), suite.repartidorUser.UserID, *order.AssignedRepartidorID)
-	
+
 	// Step 4: Repartidor starts delivery
 	order, err = suite.orderService.UpdateOrderStatus(
-		orderID, 
-		models.OrderStatusInTransit, 
-		suite.repartidorUser.UserID.String(), 
+		orderID,
+		models.OrderStatusInTransit,
+		suite.repartidorUser.UserID.String(),
 		suite.repartidorUser.UserRole,
 	)
 	require.NoError(suite.T(), err)
 	assert.Equal(suite.T(), models.OrderStatusInTransit, order.OrderStatus)
-	
+
 	// Step 5: Repartidor sets ETA
 	eta := time.Now().Add(25 * time.Minute)
 	order, err = suite.orderService.SetEstimatedArrivalTime(orderID, eta)
 	require.NoError(suite.T(), err)
 	assert.NotNil(suite.T(), order.EstimatedArrivalTime)
-	
+
 	// Step 6: Repartidor delivers order
 	order, err = suite.orderService.UpdateOrderStatus(
-		orderID, 
-		models.OrderStatusDelivered, 
-		suite.repartidorUser.UserID.String(), 
+		orderID,
+		models.OrderStatusDelivered,
+		suite.repartidorUser.UserID.String(),
 		suite.repartidorUser.UserRole,
 	)
 	require.NoError(suite.T(), err)
 	assert.Equal(suite.T(), models.OrderStatusDelivered, order.OrderStatus)
 	assert.NotNil(suite.T(), order.DeliveredAt)
-	
+
 	// Verify final state
 	finalOrder, err := suite.orderService.GetOrderByID(orderID)
 	require.NoError(suite.T(), err)

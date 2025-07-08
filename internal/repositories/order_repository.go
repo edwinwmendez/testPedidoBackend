@@ -164,7 +164,7 @@ func (r *orderRepository) UpdateStatus(id string, status models.OrderStatus) err
 func (r *orderRepository) AssignRepartidor(orderID string, repartidorID string) error {
 	updates := map[string]interface{}{
 		"assigned_repartidor_id": repartidorID,
-		"assigned_at":           time.Now(),
+		"assigned_at":            time.Now(),
 	}
 
 	return r.db.Model(&models.Order{}).Where("order_id = ?", orderID).Updates(updates).Error

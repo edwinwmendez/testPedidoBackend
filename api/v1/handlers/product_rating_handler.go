@@ -45,21 +45,21 @@ func (h *ProductRatingHandler) CreateRating(c *fiber.Ctx) error {
 		})
 	}
 	userID := claims.UserID.String()
-	
+
 	var req models.CreateRatingRequest
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Formato de datos inválido",
 		})
 	}
-	
+
 	// Validar request
 	if req.Rating < 1 || req.Rating > 5 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "La calificación debe estar entre 1 y 5",
 		})
 	}
-	
+
 	response, err := h.ratingService.Create(&req, userID)
 	if err != nil {
 		switch err {
@@ -77,7 +77,7 @@ func (h *ProductRatingHandler) CreateRating(c *fiber.Ctx) error {
 			})
 		}
 	}
-	
+
 	return c.Status(fiber.StatusCreated).JSON(response)
 }
 
@@ -95,14 +95,14 @@ func (h *ProductRatingHandler) CreateRating(c *fiber.Ctx) error {
 // @Router /products/{id}/ratings [get]
 func (h *ProductRatingHandler) GetProductRatings(c *fiber.Ctx) error {
 	productID := c.Params("id")
-	
+
 	// Validar UUID
 	if _, err := uuid.Parse(productID); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "ID de producto inválido",
 		})
 	}
-	
+
 	ratings, err := h.ratingService.GetByProduct(productID)
 	if err != nil {
 		if err == services.ErrProductNotFoundService {
@@ -114,7 +114,7 @@ func (h *ProductRatingHandler) GetProductRatings(c *fiber.Ctx) error {
 			"error": "Error al obtener calificaciones",
 		})
 	}
-	
+
 	return c.JSON(ratings)
 }
 
@@ -141,25 +141,25 @@ func (h *ProductRatingHandler) GetUserRating(c *fiber.Ctx) error {
 	}
 	userID := claims.UserID.String()
 	productID := c.Params("id")
-	
+
 	// Validar UUID
 	if _, err := uuid.Parse(productID); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "ID de producto inválido",
 		})
 	}
-	
+
 	rating, err := h.ratingService.GetUserRatingForProduct(productID, userID)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Error al obtener calificación",
 		})
 	}
-	
+
 	if rating == nil {
 		return c.SendStatus(fiber.StatusNoContent)
 	}
-	
+
 	return c.JSON(rating)
 }
 
@@ -185,21 +185,21 @@ func (h *ProductRatingHandler) UpdateRating(c *fiber.Ctx) error {
 		})
 	}
 	userID := claims.UserID.String()
-	
+
 	var req models.CreateRatingRequest
 	if err := c.BodyParser(&req); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "Formato de datos inválido",
 		})
 	}
-	
+
 	// Validar request
 	if req.Rating < 1 || req.Rating > 5 {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": "La calificación debe estar entre 1 y 5",
 		})
 	}
-	
+
 	response, err := h.ratingService.Update(&req, userID)
 	if err != nil {
 		switch err {
@@ -217,7 +217,7 @@ func (h *ProductRatingHandler) UpdateRating(c *fiber.Ctx) error {
 			})
 		}
 	}
-	
+
 	return c.JSON(response)
 }
 
@@ -227,10 +227,10 @@ func (h *ProductRatingHandler) RegisterRoutes(router fiber.Router, authMiddlewar
 	ratings := router.Group("/ratings", authMiddleware)
 	ratings.Post("/", h.CreateRating)
 	ratings.Put("/", h.UpdateRating)
-	
+
 	// Rutas públicas para calificaciones de productos (sin autenticación)
 	router.Get("/products/:id/ratings", h.GetProductRatings)
-	
+
 	// Rutas autenticadas para calificaciones de productos (solo auth, sin roles)
 	router.Get("/products/:id/ratings/me", authMiddleware, h.GetUserRating)
 }

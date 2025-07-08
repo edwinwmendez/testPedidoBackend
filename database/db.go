@@ -100,19 +100,19 @@ func MigrateSchema(db *gorm.DB) error {
 
 	// Deshabilitar temporalmente la creación automática de FK para evitar problemas
 	db.DisableForeignKeyConstraintWhenMigrating = true
-	
+
 	// Migrar tablas base primero (sin relaciones)
 	err := db.AutoMigrate(&models.User{}, &models.Product{})
 	if err != nil {
 		return fmt.Errorf("error al migrar tablas base: %w", err)
 	}
-	
+
 	// Luego migrar tablas con relaciones
 	err = db.AutoMigrate(&models.Order{}, &models.OrderItem{})
 	if err != nil {
 		return fmt.Errorf("error al migrar tablas con relaciones: %w", err)
 	}
-	
+
 	// Habilitar nuevamente las FK para operaciones futuras
 	db.DisableForeignKeyConstraintWhenMigrating = false
 

@@ -228,10 +228,10 @@ func (h *AuthHandler) Logout(c *fiber.Ctx) error {
 	// En un sistema JWT stateless, el logout se maneja típicamente del lado del cliente
 	// eliminando el token. Este endpoint es principalmente para cumplir con la API RESTful
 	// y proporcionar una respuesta consistente.
-	
+
 	// En el futuro, aquí se podría implementar una blacklist de tokens
 	// o invalidación en Redis si se requiere logout del lado del servidor
-	
+
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
 		"message": "Sesión cerrada exitosamente",
 	})
@@ -244,7 +244,7 @@ func (h *AuthHandler) RegisterRoutes(router fiber.Router, authMiddleware, adminO
 	// Rutas públicas (sin autenticación)
 	authGroup.Post("/login", h.Login)
 	authGroup.Post("/refresh", h.RefreshToken)
-	
+
 	// Rutas protegidas - solo administradores pueden crear usuarios
 	authGroup.Post("/register", authMiddleware, adminOnly, h.RegisterUser)
 	authGroup.Post("/logout", authMiddleware, h.Logout)

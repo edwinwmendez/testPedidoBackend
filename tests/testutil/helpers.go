@@ -25,10 +25,10 @@ func CreateTestUser(t *testing.T, role models.UserRole) *models.User {
 		CreatedAt:   MockTime,
 		UpdatedAt:   MockTime,
 	}
-	
+
 	err := user.SetPassword("testpassword123")
 	require.NoError(t, err)
-	
+
 	return user
 }
 
@@ -48,17 +48,17 @@ func CreateTestProduct(t *testing.T) *models.Product {
 // CreateTestOrder creates a test order with default values
 func CreateTestOrder(t *testing.T, clientID uuid.UUID) *models.Order {
 	return &models.Order{
-		OrderID:     uuid.New(),
-		ClientID:    clientID,
-		OrderStatus: models.OrderStatusPending,
-		TotalAmount: 45.50,
+		OrderID:             uuid.New(),
+		ClientID:            clientID,
+		OrderStatus:         models.OrderStatusPending,
+		TotalAmount:         45.50,
 		Latitude:            -12.046374,
 		Longitude:           -77.042793,
 		DeliveryAddressText: "Av. Test 123, Lima, Perú",
-		PaymentNote: "Billete de 50 soles",
-		OrderTime:   MockTime,
-		CreatedAt:   MockTime,
-		UpdatedAt:   MockTime,
+		PaymentNote:         "Billete de 50 soles",
+		OrderTime:           MockTime,
+		CreatedAt:           MockTime,
+		UpdatedAt:           MockTime,
 	}
 }
 

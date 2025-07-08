@@ -40,32 +40,32 @@ func (suite *ErrorHandlingTestSuite) SetupSuite() {
 	// Test configuration
 	suite.config = &config.Config{
 		JWT: config.JWTConfig{
-			Secret:           "test-jwt-secret-key-for-integration-testing",
-			AccessTokenExp:   15 * time.Minute,
-			RefreshTokenExp:  7 * 24 * time.Hour,
+			Secret:          "test-jwt-secret-key-for-integration-testing",
+			AccessTokenExp:  15 * time.Minute,
+			RefreshTokenExp: 7 * 24 * time.Hour,
 		},
 	}
-	
+
 	// Setup test database with foreign key constraint disabled
 	var err error
 	suite.db, err = gorm.Open(postgres.Open("host=localhost port=5433 user=postgres password=postgres dbname=exactogas_test sslmode=disable"), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Silent),
+		Logger:                                   logger.Default.LogMode(logger.Silent),
 		DisableForeignKeyConstraintWhenMigrating: true,
 	})
 	if err != nil {
 		suite.T().Skip("PostgreSQL not available for integration testing")
 		return
 	}
-	
+
 	// Auto-migrate
 	err = suite.db.AutoMigrate(&models.User{}, &models.Product{}, &models.Order{}, &models.OrderItem{})
 	require.NoError(suite.T(), err)
-	
+
 	// Create repositories
 	userRepo := repositories.NewUserRepository(suite.db)
 	productRepo := repositories.NewProductRepository(suite.db)
 	orderRepo := repositories.NewOrderRepository(suite.db)
-	
+
 	// Create services
 	suite.authService = auth.NewService(suite.db, suite.config)
 	suite.userService = services.NewUserService(userRepo)
@@ -78,7 +78,7 @@ func (suite *ErrorHandlingTestSuite) SetupSuite() {
 		suite.config,
 		nil, // websocket hub
 	)
-	
+
 	// Setup Fiber app with routes
 	suite.app = fiber.New(fiber.Config{
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
@@ -87,7 +87,7 @@ func (suite *ErrorHandlingTestSuite) SetupSuite() {
 			})
 		},
 	})
-	
+
 	// Setup routes with proper services
 	v1.SetupRoutes(suite.app, suite.authService, suite.userService, suite.productService, suite.orderService)
 }
@@ -133,7 +133,7 @@ func (suite *ErrorHandlingTestSuite) TestConsistentErrorFormat() {
 		},
 		{
 			name:     "Missing fields in registration",
-			method:   "POST", 
+			method:   "POST",
 			endpoint: "/api/v1/auth/register",
 			payload: map[string]interface{}{
 				"email": "test@example.com",
@@ -163,7 +163,7 @@ func (suite *ErrorHandlingTestSuite) TestConsistentErrorFormat() {
 		},
 		{
 			name:           "Invalid user ID",
-			method:         "GET", 
+			method:         "GET",
 			endpoint:       "/api/v1/users/invalid-uuid-format",
 			payload:        nil,
 			headers:        map[string]string{"Authorization": "Bearer invalid-token"},
@@ -228,7 +228,7 @@ func (suite *ErrorHandlingTestSuite) TestConsistentErrorFormat() {
 
 			// All error responses should have an "error" field
 			assert.Contains(t, response, "error", "Error response should contain 'error' field")
-			
+
 			// Error message should be a string
 			errorMsg, ok := response["error"].(string)
 			assert.True(t, ok, "Error field should be a string")
@@ -243,14 +243,14 @@ func (suite *ErrorHandlingTestSuite) TestConsistentErrorFormat() {
 
 func (suite *ErrorHandlingTestSuite) TestNotFoundEndpoints() {
 	notFoundCases := []struct {
-		method   string
-		endpoint string
+		method           string
+		endpoint         string
 		expectedStatuses []int // Multiple acceptable status codes
 	}{
-		{"GET", "/api/v1/nonexistent", []int{404, 500}}, // Could be 404 or 500 depending on framework
-		{"POST", "/api/v1/invalid/endpoint", []int{404, 500}}, // Could be 404 or 500
+		{"GET", "/api/v1/nonexistent", []int{404, 500}},                // Could be 404 or 500 depending on framework
+		{"POST", "/api/v1/invalid/endpoint", []int{404, 500}},          // Could be 404 or 500
 		{"PUT", "/api/v1/users/nonexistent-resource", []int{401, 404}}, // 401 if auth required first
-		{"DELETE", "/api/v1/orders/invalid", []int{401, 404}}, // 401 if auth required first
+		{"DELETE", "/api/v1/orders/invalid", []int{401, 404}},          // 401 if auth required first
 	}
 
 	for _, tc := range notFoundCases {
@@ -276,10 +276,10 @@ func (suite *ErrorHandlingTestSuite) TestHTTPMethodValidation() {
 		// These endpoints should not accept GET
 		{"GET", "/api/v1/auth/register", "Register should not accept GET"},
 		{"GET", "/api/v1/auth/login", "Login should not accept GET"},
-		
-		// These endpoints should not accept POST  
+
+		// These endpoints should not accept POST
 		{"POST", "/api/v1/users/me", "User profile should not accept POST"},
-		
+
 		// These endpoints should not accept DELETE
 		{"DELETE", "/api/v1/auth/login", "Login should not accept DELETE"},
 	}
@@ -293,7 +293,7 @@ func (suite *ErrorHandlingTestSuite) TestHTTPMethodValidation() {
 
 			// Should return 4xx or 5xx for unsupported methods (not 2xx)
 			assert.True(t, resp.StatusCode >= 400,
-				"%s: Should return error status for unsupported HTTP method, got: %d", 
+				"%s: Should return error status for unsupported HTTP method, got: %d",
 				tc.description, resp.StatusCode)
 		})
 	}
@@ -303,7 +303,7 @@ func (suite *ErrorHandlingTestSuite) TestContentTypeValidation() {
 	// Test endpoints that require JSON
 	jsonEndpoints := []string{
 		"/api/v1/auth/register",
-		"/api/v1/auth/login", 
+		"/api/v1/auth/login",
 		"/api/v1/auth/refresh",
 	}
 
@@ -311,7 +311,7 @@ func (suite *ErrorHandlingTestSuite) TestContentTypeValidation() {
 		suite.T().Run("Missing Content-Type: "+endpoint, func(t *testing.T) {
 			req := httptest.NewRequest("POST", endpoint, bytes.NewReader([]byte("{}")))
 			// Deliberately not setting Content-Type header
-			
+
 			resp, err := suite.app.Test(req)
 			require.NoError(t, err)
 			defer resp.Body.Close()
@@ -332,7 +332,7 @@ func (suite *ErrorHandlingTestSuite) TestLargePayloadHandling() {
 	largePayload["full_name"] = "Test User"
 	largePayload["phone_number"] = "+51999999999"
 	largePayload["user_role"] = "CLIENT"
-	
+
 	// Add a very large field
 	largeString := make([]byte, 1024*1024) // 1MB string
 	for i := range largeString {
@@ -351,9 +351,9 @@ func (suite *ErrorHandlingTestSuite) TestLargePayloadHandling() {
 	defer resp.Body.Close()
 
 	// Should handle large payloads gracefully (either accept or reject cleanly)
-	assert.True(suite.T(), resp.StatusCode == http.StatusBadRequest || 
-			   resp.StatusCode == http.StatusRequestEntityTooLarge ||
-			   resp.StatusCode == http.StatusCreated,
+	assert.True(suite.T(), resp.StatusCode == http.StatusBadRequest ||
+		resp.StatusCode == http.StatusRequestEntityTooLarge ||
+		resp.StatusCode == http.StatusCreated,
 		"Should handle large payloads gracefully")
 }
 

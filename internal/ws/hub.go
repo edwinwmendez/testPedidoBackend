@@ -7,7 +7,7 @@ import (
 
 // Hub gestiona todas las conexiones activas y el broadcast de mensajes.
 type Hub struct {
-	clients    map[string]*Client // key: userID
+	clients    map[string]*Client            // key: userID
 	byRole     map[string]map[string]*Client // role -> userID -> *Client
 	register   chan *Client
 	unregister chan *Client
@@ -66,9 +66,9 @@ func (h *Hub) Run() {
 func (h *Hub) SendToUser(userID string, msg Message) {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
-	
+
 	log.Printf("[WebSocket Hub] Intentando enviar mensaje tipo '%s' a usuario %s", msg.Type, userID)
-	
+
 	if client, ok := h.clients[userID]; ok {
 		log.Printf("[WebSocket Hub] Usuario %s encontrado, enviando mensaje", userID)
 		client.send <- msg
@@ -89,7 +89,7 @@ func (h *Hub) SendToUser(userID string, msg Message) {
 func (h *Hub) SendToRole(role string, msg Message) {
 	h.mu.RLock()
 	defer h.mu.RUnlock()
-	
+
 	log.Printf("[WebSocket Hub] Enviando mensaje tipo '%s' a rol '%s'", msg.Type, role)
 	log.Printf("[WebSocket Hub] Clientes conectados por rol: %v", func() map[string]int {
 		counts := make(map[string]int)
@@ -98,10 +98,10 @@ func (h *Hub) SendToRole(role string, msg Message) {
 		}
 		return counts
 	}())
-	
+
 	clients := h.byRole[role]
 	log.Printf("[WebSocket Hub] Enviando a %d clientes del rol '%s'", len(clients), role)
-	
+
 	for userID, client := range clients {
 		log.Printf("[WebSocket Hub] Enviando mensaje a cliente %s (rol: %s)", userID, role)
 		select {

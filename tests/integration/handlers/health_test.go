@@ -39,32 +39,32 @@ func (suite *HealthTestSuite) SetupSuite() {
 	// Test configuration
 	suite.config = &config.Config{
 		JWT: config.JWTConfig{
-			Secret:           "test-jwt-secret-key-for-integration-testing",
-			AccessTokenExp:   15 * time.Minute,
-			RefreshTokenExp:  7 * 24 * time.Hour,
+			Secret:          "test-jwt-secret-key-for-integration-testing",
+			AccessTokenExp:  15 * time.Minute,
+			RefreshTokenExp: 7 * 24 * time.Hour,
 		},
 	}
-	
+
 	// Setup test database with foreign key constraint disabled
 	var err error
 	suite.db, err = gorm.Open(postgres.Open("host=localhost port=5433 user=postgres password=postgres dbname=exactogas_test sslmode=disable"), &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Silent),
+		Logger:                                   logger.Default.LogMode(logger.Silent),
 		DisableForeignKeyConstraintWhenMigrating: true,
 	})
 	if err != nil {
 		suite.T().Skip("PostgreSQL not available for integration testing")
 		return
 	}
-	
+
 	// Auto-migrate
 	err = suite.db.AutoMigrate(&models.User{}, &models.Product{}, &models.Order{}, &models.OrderItem{})
 	require.NoError(suite.T(), err)
-	
+
 	// Create repositories
 	userRepo := repositories.NewUserRepository(suite.db)
 	productRepo := repositories.NewProductRepository(suite.db)
 	orderRepo := repositories.NewOrderRepository(suite.db)
-	
+
 	// Create services
 	suite.authService = auth.NewService(suite.db, suite.config)
 	suite.userService = services.NewUserService(userRepo)
@@ -77,7 +77,7 @@ func (suite *HealthTestSuite) SetupSuite() {
 		suite.config,
 		nil, // websocket hub
 	)
-	
+
 	// Setup Fiber app with routes
 	suite.app = fiber.New(fiber.Config{
 		ErrorHandler: func(c *fiber.Ctx, err error) error {
@@ -86,7 +86,7 @@ func (suite *HealthTestSuite) SetupSuite() {
 			})
 		},
 	})
-	
+
 	// Setup routes with proper services
 	v1.SetupRoutes(suite.app, suite.authService, suite.userService, suite.productService, suite.orderService)
 }
@@ -102,26 +102,26 @@ func (suite *HealthTestSuite) TearDownSuite() {
 func (suite *HealthTestSuite) TestHealthEndpoint() {
 	// Test health endpoint response
 	req := httptest.NewRequest("GET", "/api/v1/health", nil)
-	
+
 	start := time.Now()
 	resp, err := suite.app.Test(req)
 	duration := time.Since(start)
-	
+
 	require.NoError(suite.T(), err)
 	defer resp.Body.Close()
-	
+
 	// Should respond quickly
-	assert.Less(suite.T(), duration, 100*time.Millisecond, 
+	assert.Less(suite.T(), duration, 100*time.Millisecond,
 		"Health endpoint should respond in <100ms, took: %v", duration)
-	
+
 	// Should return 200 OK
 	assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
-	
+
 	// Should return valid JSON
 	var response map[string]interface{}
 	err = json.NewDecoder(resp.Body).Decode(&response)
 	require.NoError(suite.T(), err)
-	
+
 	// Should contain required fields
 	assert.Contains(suite.T(), response, "status")
 	assert.Equal(suite.T(), "ok", response["status"])
@@ -133,10 +133,10 @@ func (suite *HealthTestSuite) TestHealthEndpointMultipleRequests() {
 	// Test multiple concurrent requests to health endpoint
 	for i := 0; i < 10; i++ {
 		req := httptest.NewRequest("GET", "/api/v1/health", nil)
-		
+
 		resp, err := suite.app.Test(req)
 		require.NoError(suite.T(), err)
-		
+
 		assert.Equal(suite.T(), http.StatusOK, resp.StatusCode)
 		resp.Body.Close()
 	}

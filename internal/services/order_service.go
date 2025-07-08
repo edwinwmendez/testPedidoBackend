@@ -206,9 +206,9 @@ func (s *OrderService) AssignRepartidor(orderID string, repartidorID string) (*m
 	}
 
 	// Verificar que el pedido esté en estado pendiente o confirmado
-	if order.OrderStatus != models.OrderStatusPending && 
-	   order.OrderStatus != models.OrderStatusPendingOutOfHours && 
-	   order.OrderStatus != models.OrderStatusConfirmed {
+	if order.OrderStatus != models.OrderStatusPending &&
+		order.OrderStatus != models.OrderStatusPendingOutOfHours &&
+		order.OrderStatus != models.OrderStatusConfirmed {
 		return nil, ErrInvalidOrderStatus
 	}
 
@@ -257,9 +257,9 @@ func (s *OrderService) SetEstimatedArrivalTime(orderID string, eta time.Time) (*
 	}
 
 	// Verificar que el pedido esté confirmado, asignado o en tránsito
-	if order.OrderStatus != models.OrderStatusConfirmed && 
-	   order.OrderStatus != models.OrderStatusAssigned && 
-	   order.OrderStatus != models.OrderStatusInTransit {
+	if order.OrderStatus != models.OrderStatusConfirmed &&
+		order.OrderStatus != models.OrderStatusAssigned &&
+		order.OrderStatus != models.OrderStatusInTransit {
 		return nil, ErrInvalidOrderStatus
 	}
 
@@ -297,7 +297,7 @@ func (s *OrderService) canUpdateStatus(order *models.Order, newStatus models.Ord
 			models.OrderStatusPendingOutOfHours: {models.OrderStatusConfirmed, models.OrderStatusCancelled},
 			models.OrderStatusConfirmed:         {models.OrderStatusAssigned, models.OrderStatusCancelled},
 		}
-		
+
 		if allowedStates, exists := validTransitions[order.OrderStatus]; exists {
 			for _, allowed := range allowedStates {
 				if newStatus == allowed {
@@ -306,21 +306,21 @@ func (s *OrderService) canUpdateStatus(order *models.Order, newStatus models.Ord
 			}
 		}
 		return false
-		
+
 	case models.UserRoleRepartidor:
 		// Repartidor puede tomar pedidos PENDING y manejar sus asignaciones
-		if newStatus == models.OrderStatusConfirmed && 
-		   (order.OrderStatus == models.OrderStatusPending || order.OrderStatus == models.OrderStatusPendingOutOfHours) {
+		if newStatus == models.OrderStatusConfirmed &&
+			(order.OrderStatus == models.OrderStatusPending || order.OrderStatus == models.OrderStatusPendingOutOfHours) {
 			return true // Cualquier repartidor puede tomar pedidos
 		}
-		
+
 		// Para estados avanzados, debe ser el repartidor asignado
 		if order.AssignedRepartidorID != nil && order.AssignedRepartidorID.String() == userID {
 			validTransitions := map[models.OrderStatus][]models.OrderStatus{
 				models.OrderStatusAssigned:  {models.OrderStatusInTransit},
 				models.OrderStatusInTransit: {models.OrderStatusDelivered},
 			}
-			
+
 			if allowedStates, exists := validTransitions[order.OrderStatus]; exists {
 				for _, allowed := range allowedStates {
 					if newStatus == allowed {
@@ -330,14 +330,14 @@ func (s *OrderService) canUpdateStatus(order *models.Order, newStatus models.Ord
 			}
 		}
 		return false
-		
+
 	case models.UserRoleClient:
 		// Cliente solo puede cancelar sus pedidos si están en estado inicial
-		return newStatus == models.OrderStatusCancelled && 
-		       order.ClientID.String() == userID && 
-		       (order.OrderStatus == models.OrderStatusPending || order.OrderStatus == models.OrderStatusPendingOutOfHours)
+		return newStatus == models.OrderStatusCancelled &&
+			order.ClientID.String() == userID &&
+			(order.OrderStatus == models.OrderStatusPending || order.OrderStatus == models.OrderStatusPendingOutOfHours)
 	}
-	
+
 	return false
 }
 
@@ -357,7 +357,7 @@ func (s *OrderService) notifyNewOrder(order *models.Order) {
 
 	// Log para depuración
 	log.Printf("[WebSocket] Ejecutando notifyNewOrder para pedido %s", order.OrderID.String())
-	
+
 	// Notificar a los repartidores sobre un nuevo pedido
 	message := fmt.Sprintf("Nuevo pedido #%s disponible", order.OrderID.String()[:8])
 	if s.notificationService != nil {
@@ -446,10 +446,10 @@ func (s *OrderService) notifyStatusChange(order *models.Order) {
 			Type:    ws.OrderStatusUpdate,
 			Payload: ws.MustMarshalPayload(payload),
 		}
-		
+
 		log.Printf("[WebSocket] Enviando notificación de cambio de estado al cliente: %s", order.ClientID.String())
 		s.wsHub.SendToUser(order.ClientID.String(), msg)
-		
+
 		// No enviar a REPARTIDOR para asignaciones - usa notifyOrderAssigned específica
 		if order.OrderStatus != models.OrderStatusAssigned {
 			s.wsHub.SendToRole("REPARTIDOR", msg)
@@ -470,13 +470,13 @@ func (s *OrderService) notifyOrderAssigned(order *models.Order) {
 	} else {
 		repartidorName = "un repartidor"
 	}
-	
+
 	// Notificación SMS/push al cliente
 	clientMessage := fmt.Sprintf("Tu pedido ha sido asignado a %s y pronto iniciará la entrega.", repartidorName)
 	if s.notificationService != nil {
 		s.notificationService.SendToClient(order.ClientID.String(), clientMessage, order.OrderID.String())
 	}
-	
+
 	// WebSocket: estructura de payload común
 	type StatusUpdatePayload struct {
 		OrderID          string  `json:"order_id"`
@@ -485,13 +485,13 @@ func (s *OrderService) notifyOrderAssigned(order *models.Order) {
 		EstimatedArrival *string `json:"estimated_arrival_time,omitempty"`
 		RepartidorName   string  `json:"repartidor_name,omitempty"`
 	}
-	
+
 	var eta *string
 	if order.EstimatedArrivalTime != nil {
 		formatted := order.EstimatedArrivalTime.Format(time.RFC3339)
 		eta = &formatted
 	}
-	
+
 	// Only send WebSocket messages if hub is available
 	if s.wsHub != nil {
 		// 1. Notificación específica al CLIENTE
@@ -502,19 +502,19 @@ func (s *OrderService) notifyOrderAssigned(order *models.Order) {
 			EstimatedArrival: eta,
 			RepartidorName:   repartidorName,
 		}
-		
+
 		clientWsMsg := ws.Message{
 			Type:    ws.OrderStatusUpdate,
 			Payload: ws.MustMarshalPayload(clientPayload),
 		}
-		
+
 		log.Printf("[WebSocket] Enviando notificación de asignación al cliente: %s", order.ClientID.String())
 		s.wsHub.SendToUser(order.ClientID.String(), clientWsMsg)
-		
+
 		// 2. Notificación específica al REPARTIDOR ASIGNADO
 		if order.AssignedRepartidor != nil {
 			repartidorMessage := fmt.Sprintf("Se te ha asignado un nuevo pedido #%s. Dirígete al establecimiento para recogerlo.", order.OrderID.String()[:8])
-			
+
 			repartidorPayload := StatusUpdatePayload{
 				OrderID:          order.OrderID.String(),
 				Status:           string(order.OrderStatus),
@@ -522,19 +522,19 @@ func (s *OrderService) notifyOrderAssigned(order *models.Order) {
 				EstimatedArrival: eta,
 				RepartidorName:   repartidorName,
 			}
-			
+
 			repartidorWsMsg := ws.Message{
 				Type:    ws.OrderStatusUpdate,
 				Payload: ws.MustMarshalPayload(repartidorPayload),
 			}
-			
+
 			log.Printf("[WebSocket] Enviando notificación de asignación al repartidor: %s", order.AssignedRepartidor.UserID.String())
 			s.wsHub.SendToUser(order.AssignedRepartidor.UserID.String(), repartidorWsMsg)
 		}
-		
+
 		// 3. Notificación informativa para ADMIN
 		adminMessage := fmt.Sprintf("Pedido #%s asignado a %s", order.OrderID.String()[:8], repartidorName)
-		
+
 		adminPayload := StatusUpdatePayload{
 			OrderID:          order.OrderID.String(),
 			Status:           string(order.OrderStatus),
@@ -542,12 +542,12 @@ func (s *OrderService) notifyOrderAssigned(order *models.Order) {
 			EstimatedArrival: eta,
 			RepartidorName:   repartidorName,
 		}
-		
+
 		adminWsMsg := ws.Message{
 			Type:    ws.OrderStatusUpdate,
 			Payload: ws.MustMarshalPayload(adminPayload),
 		}
-		
+
 		log.Printf("[WebSocket] Enviando notificación de asignación a administradores")
 		s.wsHub.SendToRole("ADMIN", adminWsMsg)
 	}

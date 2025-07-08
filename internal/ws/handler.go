@@ -13,7 +13,7 @@ import (
 func WebSocketHandler(hub *Hub, cfg *config.Config) fiber.Handler {
 	return websocket.New(func(c *websocket.Conn) {
 		token := c.Query("token")
-				// log.Printf("[WebSocket] Token recibido: %s", token) // Comentado por seguridad
+		// log.Printf("[WebSocket] Token recibido: %s", token) // Comentado por seguridad
 		userID, role, err := ValidateWebSocketToken(token, cfg)
 		if err != nil {
 			log.Printf("[WebSocket] Token inválido: %v", err)

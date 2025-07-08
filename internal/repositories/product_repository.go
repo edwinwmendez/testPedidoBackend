@@ -38,7 +38,7 @@ func (r *productRepository) Create(product *models.Product) error {
 			VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
 			product.ProductID, product.Name, product.Description, product.Price, product.CategoryID, product.ImageURL, product.StockQuantity, false).Error
 	}
-	
+
 	// For active products, use standard GORM create
 	return r.db.Create(product).Error
 }
@@ -94,26 +94,26 @@ func (r *productRepository) Delete(id string) error {
 // FindPopular obtiene productos populares basados en popularity_score
 func (r *productRepository) FindPopular(limit int) ([]*models.Product, error) {
 	var products []*models.Product
-	
+
 	err := r.db.Preload("Category").
 		Where("is_active = ? AND stock_quantity > 0", true).
 		Order("popularity_score DESC, purchase_count DESC, rating_average DESC").
 		Limit(limit).
 		Find(&products).Error
-	
+
 	return products, err
 }
 
 // FindRecent obtiene los productos más recientes
 func (r *productRepository) FindRecent(limit int) ([]*models.Product, error) {
 	var products []*models.Product
-	
+
 	err := r.db.Preload("Category").
 		Where("is_active = ? AND stock_quantity > 0", true).
 		Order("created_at DESC").
 		Limit(limit).
 		Find(&products).Error
-	
+
 	return products, err
 }
 

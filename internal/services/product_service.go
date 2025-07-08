@@ -62,7 +62,7 @@ func (s *ProductService) GetPopular(limit int) ([]*models.Product, error) {
 	if limit > 20 {
 		limit = 20 // Maximum limit to prevent abuse
 	}
-	
+
 	return s.repo.FindPopular(limit)
 }
 
@@ -74,7 +74,7 @@ func (s *ProductService) GetRecent(limit int) ([]*models.Product, error) {
 	if limit > 20 {
 		limit = 20 // Maximum limit to prevent abuse
 	}
-	
+
 	return s.repo.FindRecent(limit)
 }
 
@@ -85,7 +85,7 @@ func (s *ProductService) IncrementViewCount(id string) error {
 	if err != nil {
 		return ErrProductNotFoundService
 	}
-	
+
 	return s.repo.IncrementViewCount(id)
 }
 
@@ -96,6 +96,6 @@ func (s *ProductService) IncrementPurchaseCount(id string) error {
 	if err != nil {
 		return ErrProductNotFoundService
 	}
-	
+
 	return s.repo.IncrementPurchaseCount(id)
 }

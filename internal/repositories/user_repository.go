@@ -81,7 +81,7 @@ func (r *userRepository) FindAllWithPagination(offset, limit int, role *models.U
 	var total int64
 
 	query := r.db.Model(&models.User{})
-	
+
 	if role != nil {
 		query = query.Where("user_role = ?", *role)
 	}
