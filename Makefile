@@ -12,10 +12,10 @@ BINARY_NAME=backend
 BINARY_UNIX=$(BINARY_NAME)_unix
 
 # Database parameters
-DB_HOST=localhost
-DB_PORT=5433
-DB_USER=postgres
-DB_PASSWORD=postgres
+DB_HOST=host.docker.internal
+DB_PORT=5432
+DB_USER=exactogas_user
+DB_PASSWORD=exactogas_pass
 DB_NAME=exactogas
 DB_TEST_NAME=exactogas_test
 

@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"fmt"
+	"log"
 	"strconv"
 	"time"
 
@@ -97,7 +99,7 @@ func (h *OrderHandler) CreateOrder(c *fiber.Ctx) error {
 	}
 
 	// Crear el pedido en el modelo
-		clientID, err := uuid.Parse(claims.UserID.String())
+	clientID, err := uuid.Parse(claims.UserID.String())
 	if err != nil {
 		// Esto no debería ocurrir con un token válido, indica un problema interno.
 		log.Printf("Error crítico: UserID en claims no es un UUID válido: %v", err)
@@ -345,24 +347,24 @@ func (h *OrderHandler) GetOrderRepartidor(c *fiber.Ctx) error {
 		// 1. Es información sobre ellos mismos, O
 		// 2. Es un pedido que pueden ver (asignado a ellos o pendiente)
 		canView := false
-		
+
 		// Si es información sobre ellos mismos
 		if order.AssignedRepartidor.UserID.String() == claims.UserID.String() {
 			canView = true
 		}
-		
+
 		// Si es un pedido que pueden ver según lógica normal
 		if order.AssignedRepartidorID != nil &&
 			order.AssignedRepartidorID.String() == claims.UserID.String() {
 			canView = true
 		}
-		
+
 		// Si es un pedido pendiente (pueden ver todos los repartidores)
-		if order.OrderStatus == models.OrderStatusPending || 
-		   order.OrderStatus == models.OrderStatusPendingOutOfHours {
+		if order.OrderStatus == models.OrderStatusPending ||
+			order.OrderStatus == models.OrderStatusPendingOutOfHours {
 			canView = true
 		}
-		
+
 		if !canView {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
 				"error": "No tienes permiso para ver esta información",

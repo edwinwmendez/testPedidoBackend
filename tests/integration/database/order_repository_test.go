@@ -32,10 +32,10 @@ func (suite *OrderRepositoryTestSuite) SetupSuite() {
 	// Test configuration
 	suite.config = &config.Config{
 		Database: config.DatabaseConfig{
-			Host:     "localhost",
-			Port:     "5433",
-			User:     "postgres",
-			Password: "postgres",
+			Host:     "host.docker.internal",
+			Port:     "5432",
+			User:     "exactogas_user",
+			Password: "exactogas_pass",
 			DBName:   "exactogas_test",
 			SSLMode:  "disable",
 		},

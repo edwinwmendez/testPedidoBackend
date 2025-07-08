@@ -74,7 +74,7 @@ func LoadConfig() (*Config, error) {
 
 	// Configurar Viper para usar solo variables de entorno
 	viper.AutomaticEnv()
-	
+
 	// Solo intentar leer archivo si existe y es readable
 	if _, err := os.Stat("app.env"); err == nil {
 		viper.SetConfigFile("app.env")
@@ -134,7 +134,7 @@ func LoadConfig() (*Config, error) {
 // setDefaults establece valores por defecto para la configuración
 func setDefaults() {
 	// Servidor
-	viper.SetDefault("SERVER_HOST", "0.0.0.0") // Cambio para Render.com
+	viper.SetDefault("SERVER_HOST", "0.0.0.0")        // Cambio para Render.com
 	viper.SetDefault("SERVER_PORT", getPortFromEnv()) // Usar PORT de Render si está disponible
 	viper.SetDefault("SERVER_SHUTDOWN_TIMEOUT", "5s")
 	viper.SetDefault("SERVER_READ_TIMEOUT", "5s")
@@ -143,10 +143,10 @@ func setDefaults() {
 
 	// Base de datos
 	viper.SetDefault("DATABASE_URL", "") // Para Render.com
-	viper.SetDefault("DB_HOST", "localhost")
+	viper.SetDefault("DB_HOST", "host.docker.internal")
 	viper.SetDefault("DB_PORT", "5432")
-	viper.SetDefault("DB_USER", "postgres")
-	viper.SetDefault("DB_PASSWORD", "postgres")
+	viper.SetDefault("DB_USER", "exactogas_user")
+	viper.SetDefault("DB_PASSWORD", "exactogas_pass")
 	viper.SetDefault("DB_NAME", "exactogas")
 	viper.SetDefault("DB_SSLMODE", "disable")
 
@@ -174,7 +174,7 @@ func parseAndSetDatabaseURL(databaseURL string) error {
 
 	// Extraer componentes de la URL
 	viper.Set("DB_HOST", parsedURL.Hostname())
-	
+
 	// Establecer puerto por defecto si no se especifica
 	port := parsedURL.Port()
 	if port == "" {
@@ -182,11 +182,11 @@ func parseAndSetDatabaseURL(databaseURL string) error {
 	}
 	viper.Set("DB_PORT", port)
 	viper.Set("DB_USER", parsedURL.User.Username())
-	
+
 	if password, ok := parsedURL.User.Password(); ok {
 		viper.Set("DB_PASSWORD", password)
 	}
-	
+
 	// El nombre de la base de datos está en el path, removiendo el '/' inicial
 	if len(parsedURL.Path) > 1 {
 		viper.Set("DB_NAME", strings.TrimPrefix(parsedURL.Path, "/"))
