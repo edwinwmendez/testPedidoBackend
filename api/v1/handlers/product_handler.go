@@ -85,12 +85,13 @@ func (h *ProductHandler) GetProductByID(c *fiber.Ctx) error {
 
 // CreateProductRequest estructura para crear un producto
 type CreateProductRequest struct {
-	Name                string  `json:"name" validate:"required"`
-	Description         string  `json:"description"`
-	DetailedDescription string  `json:"detailed_description"`
-	Price               float64 `json:"price" validate:"required,min=0"`
-	ImageURL            string  `json:"image_url"`
-	UnitOfMeasure       string  `json:"unit_of_measure"`
+	Name          string  `json:"name" validate:"required"`
+	Description   string  `json:"description"`
+	Price         float64 `json:"price" validate:"required,min=0"`
+	CategoryID    string  `json:"category_id"`
+	ImageURL      string  `json:"image_url"`
+	UnitOfMeasure string  `json:"unit_of_measure"`
+	PackageSize   string  `json:"package_size"`
 	StockQuantity       int     `json:"stock_quantity" validate:"min=0"`
 	IsActive            bool    `json:"is_active"`
 }
@@ -127,14 +128,25 @@ func (h *ProductHandler) CreateProduct(c *fiber.Ctx) error {
 
 	// Crear el producto en el modelo
 	product := &models.Product{
-		Name:                req.Name,
-		Description:         req.Description,
-		DetailedDescription: req.DetailedDescription,
-		Price:               req.Price,
-		ImageURL:            req.ImageURL,
-		UnitOfMeasure:       req.UnitOfMeasure,
-		StockQuantity:       req.StockQuantity,
-		IsActive:            req.IsActive,
+		Name:          req.Name,
+		Description:   req.Description,
+		Price:         req.Price,
+		ImageURL:      req.ImageURL,
+		UnitOfMeasure: req.UnitOfMeasure,
+		PackageSize:   req.PackageSize,
+		StockQuantity: req.StockQuantity,
+		IsActive:      req.IsActive,
+	}
+
+	// Asignar categoría si se proporciona
+	if req.CategoryID != "" {
+		categoryUUID, err := uuid.Parse(req.CategoryID)
+		if err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "ID de categoría inválido",
+			})
+		}
+		product.CategoryID = &categoryUUID
 	}
 
 	// Crear el producto usando el servicio
@@ -149,13 +161,13 @@ func (h *ProductHandler) CreateProduct(c *fiber.Ctx) error {
 
 // UpdateProductRequest estructura para actualizar un producto
 type UpdateProductRequest struct {
-	Name                string  `json:"name,omitempty"`
-	Description         string  `json:"description,omitempty"`
-	DetailedDescription string  `json:"detailed_description,omitempty"`
-	Price               float64 `json:"price,omitempty" validate:"omitempty,min=0"`
-	CategoryID          string  `json:"category_id,omitempty"`
-	ImageURL            string  `json:"image_url,omitempty"`
+	Name        string  `json:"name,omitempty"`
+	Description string  `json:"description,omitempty"`
+	Price       float64 `json:"price,omitempty" validate:"omitempty,min=0"`
+	CategoryID  string  `json:"category_id,omitempty"`
+	ImageURL    string  `json:"image_url,omitempty"`
 	UnitOfMeasure       string  `json:"unit_of_measure,omitempty"`
+	PackageSize         string  `json:"package_size,omitempty"`
 	StockQuantity       *int    `json:"stock_quantity,omitempty" validate:"omitempty,min=0"`
 	IsActive            *bool   `json:"is_active,omitempty"`
 }
@@ -210,10 +222,6 @@ func (h *ProductHandler) UpdateProduct(c *fiber.Ctx) error {
 		product.Description = req.Description
 	}
 
-	if req.DetailedDescription != "" {
-		product.DetailedDescription = req.DetailedDescription
-	}
-
 	if req.Price > 0 {
 		product.Price = req.Price
 	}
@@ -234,6 +242,10 @@ func (h *ProductHandler) UpdateProduct(c *fiber.Ctx) error {
 
 	if req.UnitOfMeasure != "" {
 		product.UnitOfMeasure = req.UnitOfMeasure
+	}
+
+	if req.PackageSize != "" {
+		product.PackageSize = req.PackageSize
 	}
 
 	if req.IsActive != nil {

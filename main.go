@@ -61,11 +61,9 @@ func main() {
 	orderRepo := repositories.NewOrderRepository(db)
 	productRatingRepo := repositories.NewProductRatingRepository(db)
 
-	// Inicializar servicios
+	// Inicializar servicios básicos
 	authService := auth.NewService(db, cfg)
 	userService := services.NewUserService(userRepo)
-	productService := services.NewProductService(productRepo)
-	categoryService := services.NewCategoryService(categoryRepo)
 	productRatingService := services.NewProductRatingService(productRatingRepo, productRepo)
 
 	// Inicializar servicio de notificaciones (opcional para el MVP)
@@ -76,9 +74,13 @@ func main() {
 	//     log.Println("Las notificaciones estarán desactivadas")
 	// }
 
-	// Inicializar servicio de pedidos
+	// Inicializar WebSocket hub
 	hub := ws.NewHub()
 	go hub.Run()
+
+	// Servicios que requieren WebSocket hub
+	categoryService := services.NewCategoryService(categoryRepo, hub)
+	productService := services.NewProductService(productRepo, hub)
 	orderService := services.NewOrderService(orderRepo, userRepo, productRepo, notificationService, cfg, hub)
 
 	// Crear la aplicación Fiber
