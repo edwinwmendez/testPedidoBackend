@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"backend/config"
@@ -154,7 +155,13 @@ func (s *service) ValidateToken(tokenString string) (*Claims, error) {
 
 	// Manejar errores de parseo
 	if err != nil {
-		return nil, fmt.Errorf("error al parsear token: %w", err)
+		// Detectar específicamente errores de token expirado
+		if strings.Contains(err.Error(), "token is expired") {
+			log.Printf("🔍 DEBUG ValidateToken: Token expirado - %v", err)
+			return nil, ErrInvalidToken
+		}
+		log.Printf("🔍 DEBUG ValidateToken: Error genérico - %v", err)
+		return nil, ErrInvalidToken // Cualquier error de parseo = token inválido
 	}
 
 	// Verificar que el token sea válido
