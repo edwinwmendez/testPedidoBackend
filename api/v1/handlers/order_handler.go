@@ -230,6 +230,45 @@ func (h *OrderHandler) GetOrders(c *fiber.Ctx) error {
 	return c.JSON(orders)
 }
 
+// GetOrdersPaginated obtiene órdenes con paginación para lazy loading
+func (h *OrderHandler) GetOrdersPaginated(c *fiber.Ctx) error {
+	// Obtener el usuario autenticado del contexto
+	claims := c.Locals("user").(*auth.Claims)
+
+	// Obtener parámetros de consulta
+	page, err := strconv.Atoi(c.Query("page", "1"))
+	if err != nil {
+		page = 1
+	}
+
+	pageSize, err := strconv.Atoi(c.Query("page_size", "20"))
+	if err != nil {
+		pageSize = 20
+	}
+
+	// Obtener filtro de estado opcional
+	var status *models.OrderStatus
+	statusQuery := c.Query("status")
+	if statusQuery != "" {
+		orderStatus := models.OrderStatus(statusQuery)
+		status = &orderStatus
+	}
+
+	// Obtener filtro de búsqueda opcional
+	searchQuery := c.Query("search")
+
+	// Obtener órdenes paginadas
+	result, err := h.orderService.GetOrdersWithPagination(page, pageSize, status, searchQuery, claims.UserRole, claims.UserID.String())
+	if err != nil {
+		log.Printf("Error al obtener órdenes paginadas: %v", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "Error al obtener los pedidos",
+		})
+	}
+
+	return c.JSON(result)
+}
+
 // @Summary Obtener un pedido por su ID
 // @Description Obtiene los detalles de un pedido específico por su ID
 // @Tags pedidos
@@ -694,6 +733,7 @@ func (h *OrderHandler) RegisterRoutes(router fiber.Router, authMiddleware fiber.
 	// Rutas para clientes
 	orders.Post("/", h.CreateOrder)                // Crear un nuevo pedido (solo clientes)
 	orders.Get("/", h.GetOrders)                   // Obtener pedidos (filtrado según rol)
+	orders.Get("/paginated", h.GetOrdersPaginated) // Obtener pedidos con paginación (lazy loading)
 	orders.Get("/:id", h.GetOrderByID)             // Obtener un pedido específico (según permisos)
 	orders.Put("/:id/status", h.UpdateOrderStatus) // Actualizar estado (según permisos)
 

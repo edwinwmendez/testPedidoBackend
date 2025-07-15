@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
 	"time"
 
 	"backend/config"
@@ -23,6 +24,15 @@ var (
 	ErrProductNotFound      = errors.New("producto no encontrado")
 	ErrProductInactive      = errors.New("producto no está activo")
 )
+
+// PaginatedOrdersResponse estructura para respuestas paginadas de órdenes
+type PaginatedOrdersResponse struct {
+	Orders     []*models.Order `json:"orders"`
+	TotalCount int64           `json:"total_count"`
+	Page       int             `json:"page"`
+	PageSize   int             `json:"page_size"`
+	TotalPages int             `json:"total_pages"`
+}
 
 type OrderService struct {
 	orderRepo           repositories.OrderRepository
@@ -152,6 +162,40 @@ func (s *OrderService) GetOrdersByStatus(status models.OrderStatus) ([]*models.O
 // GetAllOrders obtiene todos los pedidos
 func (s *OrderService) GetAllOrders() ([]*models.Order, error) {
 	return s.orderRepo.FindAll()
+}
+
+// GetOrdersWithPagination obtiene órdenes con paginación para lazy loading
+func (s *OrderService) GetOrdersWithPagination(page, pageSize int, status *models.OrderStatus, searchQuery string, userRole models.UserRole, userID string) (*PaginatedOrdersResponse, error) {
+	// Validar parámetros
+	if page < 1 {
+		page = 1
+	}
+	if pageSize < 1 {
+		pageSize = 20
+	}
+	if pageSize > 100 {
+		pageSize = 100
+	}
+
+	// Calcular offset
+	offset := (page - 1) * pageSize
+
+	// Obtener órdenes paginadas
+	orders, total, err := s.orderRepo.FindAllWithPagination(offset, pageSize, status, searchQuery, userRole, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Calcular total de páginas
+	totalPages := int(math.Ceil(float64(total) / float64(pageSize)))
+
+	return &PaginatedOrdersResponse{
+		Orders:     orders,
+		TotalCount: total,
+		Page:       page,
+		PageSize:   pageSize,
+		TotalPages: totalPages,
+	}, nil
 }
 
 // UpdateOrderStatus actualiza el estado de un pedido

@@ -26,6 +26,11 @@ type OrderRepository interface {
 	AddOrderItem(item *models.OrderItem) error
 	FindOrderItems(orderID string) ([]*models.OrderItem, error)
 	DeleteOrderItem(itemID string) error
+	
+	// Paginación para lazy loading
+	FindByClientIDWithPagination(clientID string, offset, limit int) ([]*models.Order, int64, error)
+	FindByRepartidorIDWithPagination(repartidorID string, offset, limit int) ([]*models.Order, int64, error)
+	FindAllWithPagination(offset, limit int, status *models.OrderStatus, searchQuery string, userRole models.UserRole, userID string) ([]*models.Order, int64, error)
 }
 
 type orderRepository struct {
@@ -222,4 +227,108 @@ func calculateDistance(lat1, lng1, lat2, lng2 float64) float64 {
 	c := 2 * math.Atan2(math.Sqrt(a), math.Sqrt(1-a))
 
 	return earthRadiusKm * c
+}
+
+// Paginación para lazy loading - Cliente
+func (r *orderRepository) FindByClientIDWithPagination(clientID string, offset, limit int) ([]*models.Order, int64, error) {
+	var orders []*models.Order
+	var total int64
+
+	// Contar total de órdenes
+	if err := r.db.Model(&models.Order{}).Where("client_id = ?", clientID).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Obtener órdenes paginadas con preloads
+	if err := r.db.
+		Preload("Client").
+		Preload("AssignedRepartidor").
+		Preload("OrderItems.Product").
+		Where("client_id = ?", clientID).
+		Order("order_time DESC").
+		Limit(limit).
+		Offset(offset).
+		Find(&orders).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return orders, total, nil
+}
+
+// Paginación para lazy loading - Repartidor
+func (r *orderRepository) FindByRepartidorIDWithPagination(repartidorID string, offset, limit int) ([]*models.Order, int64, error) {
+	var orders []*models.Order
+	var total int64
+
+	// Contar total de órdenes
+	if err := r.db.Model(&models.Order{}).Where("assigned_repartidor_id = ?", repartidorID).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Obtener órdenes paginadas con preloads
+	if err := r.db.
+		Preload("Client").
+		Preload("AssignedRepartidor").
+		Preload("OrderItems.Product").
+		Where("assigned_repartidor_id = ?", repartidorID).
+		Order("order_time DESC").
+		Limit(limit).
+		Offset(offset).
+		Find(&orders).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return orders, total, nil
+}
+
+// Paginación para lazy loading - Admin (todas las órdenes)
+func (r *orderRepository) FindAllWithPagination(offset, limit int, status *models.OrderStatus, searchQuery string, userRole models.UserRole, userID string) ([]*models.Order, int64, error) {
+	var orders []*models.Order
+	var total int64
+
+	query := r.db.Model(&models.Order{})
+
+	// Filtrar por rol de usuario
+	switch userRole {
+	case models.UserRoleClient:
+		query = query.Where("client_id = ?", userID)
+	case models.UserRoleRepartidor:
+		query = query.Where("assigned_repartidor_id = ?", userID)
+	case models.UserRoleAdmin:
+		// Los admins ven todas las órdenes, sin filtro adicional
+	}
+
+	// Filtrar por estado si se especifica
+	if status != nil {
+		query = query.Where("order_status = ?", *status)
+	}
+
+	// Filtrar por búsqueda si se especifica
+	if searchQuery != "" {
+		query = query.Where(
+			"order_id ILIKE ? OR delivery_address_text ILIKE ? OR payment_note ILIKE ?",
+			"%"+searchQuery+"%",
+			"%"+searchQuery+"%",
+			"%"+searchQuery+"%",
+		)
+	}
+
+	// Contar total
+	if err := query.Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Obtener órdenes paginadas con preloads
+	if err := query.
+		Preload("Client").
+		Preload("AssignedRepartidor").
+		Preload("OrderItems.Product").
+		Order("order_time DESC").
+		Limit(limit).
+		Offset(offset).
+		Find(&orders).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return orders, total, nil
 }
