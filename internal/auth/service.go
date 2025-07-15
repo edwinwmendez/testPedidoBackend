@@ -3,6 +3,7 @@ package auth
 import (
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"backend/config"
@@ -129,11 +130,14 @@ func (s *service) Login(email, password string) (*TokenPair, error) {
 	}
 
 	// Generar tokens
+	log.Printf("🔍 DEBUG Login: Calling generateTokenPair for user %s", user.Email)
 	tokenPair, err := s.generateTokenPair(&user)
 	if err != nil {
+		log.Printf("❌ DEBUG Login: generateTokenPair failed: %v", err)
 		return nil, fmt.Errorf("error al generar tokens: %w", err)
 	}
 
+	log.Printf("✅ DEBUG Login: generateTokenPair succeeded")
 	return tokenPair, nil
 }
 
@@ -211,6 +215,10 @@ func (s *service) GetUserByID(id uuid.UUID) (*models.User, error) {
 func (s *service) generateTokenPair(user *models.User) (*TokenPair, error) {
 	// Tiempo actual
 	now := time.Now()
+	
+	// DEBUG: Mostrar configuración de JWT
+	log.Printf("🔍 DEBUG generateTokenPair: AccessTokenExp=%v, RefreshTokenExp=%v", 
+		s.config.JWT.AccessTokenExp, s.config.JWT.RefreshTokenExp)
 
 	// Crear claims para el token de acceso
 	accessClaims := Claims{
@@ -234,12 +242,16 @@ func (s *service) generateTokenPair(user *models.User) (*TokenPair, error) {
 	}
 
 	// Crear claims para el token de refresco
+	refreshExpiry := now.Add(s.config.JWT.RefreshTokenExp)
+	log.Printf("🔍 DEBUG refresh token: now=%v, expiry=%v, duration=%v", 
+		now, refreshExpiry, s.config.JWT.RefreshTokenExp)
+		
 	refreshClaims := Claims{
 		UserID:   user.UserID,
 		Email:    user.Email,
 		UserRole: user.UserRole,
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(now.Add(s.config.JWT.RefreshTokenExp)),
+			ExpiresAt: jwt.NewNumericDate(refreshExpiry),
 			IssuedAt:  jwt.NewNumericDate(now),
 			NotBefore: jwt.NewNumericDate(now),
 			Issuer:    "exactogas-api",

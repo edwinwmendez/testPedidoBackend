@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"errors"
+	"log"
 	"strings"
 
 	"backend/internal/auth"
@@ -147,7 +148,9 @@ func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	}
 
 	// Autenticar usuario
+	log.Printf("🔍 DEBUG AuthHandler: Calling authService.Login for %s", req.Email)
 	tokenPair, err := h.authService.Login(req.Email, req.Password)
+	log.Printf("🔍 DEBUG AuthHandler: Login returned, err=%v", err)
 	if err != nil {
 		if errors.Is(err, auth.ErrInvalidCredentials) {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{

@@ -6,6 +6,7 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -62,6 +63,25 @@ type AppConfig struct {
 	TimeZone           string        // Zona horaria para el horario de atención
 }
 
+// parseDuration parsea duraciones incluyendo días (ej: "7d")
+func parseDuration(env string) (time.Duration, error) {
+	log.Printf("🔍 DEBUG parseDuration: input='%s'", env)
+	if strings.HasSuffix(env, "d") {
+		daysStr := strings.TrimSuffix(env, "d")
+		days, err := strconv.Atoi(daysStr)
+		if err != nil {
+			log.Printf("❌ DEBUG parseDuration: error parsing days: %v", err)
+			return 0, err
+		}
+		result := time.Duration(days) * 24 * time.Hour
+		log.Printf("✅ DEBUG parseDuration: %s -> %v (%d hours)", env, result, int(result.Hours()))
+		return result, nil
+	}
+	result, err := time.ParseDuration(env)
+	log.Printf("✅ DEBUG parseDuration: %s -> %v (error: %v)", env, result, err)
+	return result, err
+}
+
 // LoadConfig carga la configuración desde variables de entorno o archivo .env
 func LoadConfig() (*Config, error) {
 	// Cargar .env si existe (solo en desarrollo local)
@@ -115,7 +135,17 @@ func LoadConfig() (*Config, error) {
 		JWT: JWTConfig{
 			Secret:          viper.GetString("JWT_SECRET"),
 			AccessTokenExp:  viper.GetDuration("JWT_ACCESS_TOKEN_EXP"),
-			RefreshTokenExp: viper.GetDuration("JWT_REFRESH_TOKEN_EXP"),
+			RefreshTokenExp: func() time.Duration {
+				refreshTokenStr := viper.GetString("JWT_REFRESH_TOKEN_EXP")
+				log.Printf("🔍 DEBUG JWT_REFRESH_TOKEN_EXP from viper: '%s'", refreshTokenStr)
+				if duration, err := parseDuration(refreshTokenStr); err == nil {
+					log.Printf("✅ DEBUG RefreshTokenExp set to: %v", duration)
+					return duration
+				} else {
+					log.Printf("❌ DEBUG parseDuration failed, using fallback: %v", err)
+					return 7 * 24 * time.Hour // fallback a 7 días
+				}
+			}(),
 		},
 		Firebase: FirebaseConfig{
 			ProjectID:       viper.GetString("FIREBASE_PROJECT_ID"),
