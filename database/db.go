@@ -108,7 +108,7 @@ func MigrateSchema(db *gorm.DB) error {
 	}
 
 	// Luego migrar tablas con relaciones
-	err = db.AutoMigrate(&models.Order{}, &models.OrderItem{})
+	err = db.AutoMigrate(&models.Order{}, &models.OrderItem{}, &models.UserFavorite{})
 	if err != nil {
 		return fmt.Errorf("error al migrar tablas con relaciones: %w", err)
 	}

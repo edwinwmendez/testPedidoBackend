@@ -33,10 +33,10 @@ func (s *CategoryService) Create(category *models.Category) error {
 	if err := s.repo.Create(category); err != nil {
 		return err
 	}
-	
+
 	// Notificar sobre nueva categoría
 	s.notifyCategoryUpdate(category, "created")
-	
+
 	return nil
 }
 
@@ -65,10 +65,10 @@ func (s *CategoryService) Update(category *models.Category) error {
 	if err := s.repo.Update(category); err != nil {
 		return err
 	}
-	
+
 	// Notificar sobre categoría actualizada
 	s.notifyCategoryUpdate(category, "updated")
-	
+
 	return nil
 }
 
@@ -79,14 +79,14 @@ func (s *CategoryService) Delete(id string) error {
 	if err != nil {
 		return err
 	}
-	
+
 	if err := s.repo.Delete(id); err != nil {
 		return err
 	}
-	
+
 	// Notificar sobre categoría eliminada
 	s.notifyCategoryUpdate(category, "deleted")
-	
+
 	return nil
 }
 
@@ -96,21 +96,21 @@ func (s *CategoryService) notifyCategoryUpdate(category *models.Category, action
 		log.Printf("[WebSocket] Hub not configured, skipping websocket notification for category %s", category.CategoryID.String())
 		return
 	}
-	
+
 	payload := map[string]interface{}{
 		"action":   action, // "created", "updated", "deleted"
 		"category": category,
 	}
-	
+
 	msg := ws.Message{
 		Type:    ws.CategoryUpdate,
 		Payload: ws.MustMarshalPayload(payload),
 	}
-	
+
 	// Enviar a todos los roles ya que las categorías afectan a todos
 	s.wsHub.SendToRole("ADMIN", msg)
 	s.wsHub.SendToRole("CLIENT", msg)
 	s.wsHub.SendToRole("REPARTIDOR", msg)
-	
+
 	log.Printf("[WebSocket] Category %s notification sent for action: %s", category.CategoryID.String(), action)
 }

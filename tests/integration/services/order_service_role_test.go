@@ -135,7 +135,7 @@ func (suite *OrderServiceRoleTestSuite) SetupSuite() {
 	orderRepo := repositories.NewOrderRepository(suite.db)
 
 	suite.userService = services.NewUserService(userRepo)
-	suite.productService = services.NewProductService(productRepo)
+	suite.productService = services.NewProductService(productRepo, nil)
 
 	// Create order service with proper dependencies (mocked notification and ws services for simplicity)
 	suite.orderService = services.NewOrderService(

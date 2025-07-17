@@ -18,10 +18,10 @@ fi
 # Configuración de la base de datos
 # Por defecto usa valores locales, pero se pueden sobrescribir con variables de entorno
 DB_HOST=${EXACTOGAS_DB_HOST:-localhost}
-DB_PORT=${EXACTOGAS_DB_PORT:-5433}
-DB_NAME=${EXACTOGAS_DB_NAME:-exactogas}
+DB_PORT=${EXACTOGAS_DB_PORT:-5432}
+DB_NAME=${EXACTOGAS_DB_NAME:-pedidos_dev}
 DB_USER=${EXACTOGAS_DB_USER:-postgres}
-DB_PASSWORD=${EXACTOGAS_DB_PASSWORD:-postgres}
+DB_PASSWORD=${EXACTOGAS_DB_PASSWORD:-postgress}
 
 # Mostrar configuración
 echo -e "${YELLOW}Usando la siguiente configuración:${NC}"

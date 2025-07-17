@@ -82,7 +82,7 @@ func (suite *UserHandlerTestSuite) SetupSuite() {
 	// Create services
 	suite.authService = auth.NewService(suite.db, suite.config)
 	suite.userService = services.NewUserService(userRepo)
-	suite.productService = services.NewProductService(productRepo)
+	suite.productService = services.NewProductService(productRepo, nil)
 	suite.orderService = services.NewOrderService(
 		orderRepo,
 		userRepo,
@@ -102,7 +102,7 @@ func (suite *UserHandlerTestSuite) SetupSuite() {
 	})
 
 	// Setup routes with proper services
-	v1.SetupRoutes(suite.app, suite.authService, suite.userService, suite.productService, suite.orderService)
+	v1.SetupRoutes(suite.app, suite.authService, suite.userService, suite.productService, nil, suite.orderService, nil, nil)
 }
 
 // SetupTest runs before each test

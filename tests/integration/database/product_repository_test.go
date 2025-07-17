@@ -29,7 +29,7 @@ func (suite *ProductRepositoryTestSuite) SetupSuite() {
 	suite.config = &config.Config{
 		Database: config.DatabaseConfig{
 			Host:     "localhost",
-			Port:     "5433",
+			Port:     "5432",
 			User:     "postgres",
 			Password: "postgres",
 			DBName:   "exactogas_test",

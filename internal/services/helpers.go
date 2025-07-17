@@ -1,6 +1,9 @@
 package services
 
-import "github.com/google/uuid"
+import (
+	"time"
+	"github.com/google/uuid"
+)
 
 // mustParseUUID parsea un string a UUID, panic si falla (para uso interno)
 func mustParseUUID(s string) uuid.UUID {
@@ -9,4 +12,9 @@ func mustParseUUID(s string) uuid.UUID {
 		panic("invalid UUID: " + s)
 	}
 	return u
+}
+
+// getCurrentTimeString devuelve la fecha y hora actual como string
+func getCurrentTimeString() string {
+	return time.Now().Format(time.RFC3339)
 }

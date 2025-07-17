@@ -38,7 +38,7 @@ SERVER_IDLE_TIMEOUT=120s
 
 # Base de datos LOCAL (PostgreSQL local o Docker)
 DB_HOST=localhost
-DB_PORT=5433
+DB_PORT=5432
 DB_USER=postgres
 DB_PASSWORD=postgres
 DB_NAME=exactogas
