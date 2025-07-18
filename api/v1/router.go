@@ -11,7 +11,7 @@ import (
 )
 
 // SetupRoutes configura todas las rutas de la API v1
-func SetupRoutes(app *fiber.App, authService auth.Service, userService *services.UserService, productService *services.ProductService, categoryService *services.CategoryService, orderService *services.OrderService, productRatingService *services.ProductRatingService, favoriteService *services.FavoriteService) {
+func SetupRoutes(app *fiber.App, authService auth.Service, userService *services.UserService, productService *services.ProductService, categoryService *services.CategoryService, orderService *services.OrderService, productRatingService *services.ProductRatingService, favoriteService *services.FavoriteService, offerService services.OfferService) {
 	// Crear grupo de rutas para API v1
 	api := app.Group("/api/v1")
 
@@ -32,7 +32,11 @@ func SetupRoutes(app *fiber.App, authService auth.Service, userService *services
 	productRatingHandler := handlers.NewProductRatingHandler(productRatingService)
 	productRatingHandler.RegisterRoutes(api, authMiddleware)
 
-	// Rutas de productos
+	// Rutas de ofertas (DEBE ir ANTES que las rutas de productos para evitar conflictos de rutas)
+	offerHandler := handlers.NewOfferHandler(offerService)
+	setupOfferRoutes(api, offerHandler, authMiddleware, adminOnly)
+
+	// Rutas de productos (DEBE ir DESPUÉS de las ofertas para evitar conflictos)
 	productHandler := handlers.NewProductHandler(productService)
 	productHandler.RegisterRoutes(api, authMiddleware, adminOnly)
 
@@ -56,4 +60,24 @@ func SetupRoutes(app *fiber.App, authService auth.Service, userService *services
 		})
 	})
 
+}
+
+// setupOfferRoutes configura las rutas específicas para ofertas
+func setupOfferRoutes(api fiber.Router, offerHandler *handlers.OfferHandler, authMiddleware, adminOnly fiber.Handler) {
+	// Rutas públicas de ofertas (sin autenticación)
+	api.Get("/products/offers", offerHandler.GetProductOffers)   // GET /products/offers
+	api.Get("/products/:id/offer", offerHandler.GetProductOffer) // GET /products/:id/offer
+
+	// Rutas administrativas de ofertas (requieren autenticación de admin)
+	adminOffers := api.Group("/admin", authMiddleware, adminOnly)
+
+	// CRUD básico de ofertas
+	adminOffers.Post("/offers", offerHandler.CreateOffer)       // POST /admin/offers
+	adminOffers.Get("/offers/:id", offerHandler.GetOffer)       // GET /admin/offers/:id
+	adminOffers.Put("/offers/:id", offerHandler.UpdateOffer)    // PUT /admin/offers/:id
+	adminOffers.Delete("/offers/:id", offerHandler.DeleteOffer) // DELETE /admin/offers/:id
+
+	// Rutas convenientes para gestionar ofertas por producto
+	adminOffers.Post("/products/:id/offer", offerHandler.SetProductOffer)      // POST /admin/products/:id/offer
+	adminOffers.Delete("/products/:id/offer", offerHandler.RemoveProductOffer) // DELETE /admin/products/:id/offer
 }

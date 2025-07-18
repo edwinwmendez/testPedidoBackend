@@ -61,6 +61,7 @@ func main() {
 	orderRepo := repositories.NewOrderRepository(db)
 	productRatingRepo := repositories.NewProductRatingRepository(db)
 	favoriteRepo := repositories.NewFavoriteRepository(db)
+	offerRepo := repositories.NewOfferRepository(db)
 
 	// Inicializar servicios básicos
 	authService := auth.NewService(db, cfg)
@@ -84,6 +85,7 @@ func main() {
 	productService := services.NewProductService(productRepo, hub)
 	orderService := services.NewOrderService(orderRepo, userRepo, productRepo, notificationService, cfg, hub)
 	favoriteService := services.NewFavoriteService(favoriteRepo, productRepo, userRepo, hub)
+	offerService := services.NewOfferService(offerRepo, userRepo, productRepo)
 
 	// Crear la aplicación Fiber
 	app := fiber.New(fiber.Config{
@@ -106,7 +108,7 @@ func main() {
 	}))
 
 	// Configurar rutas de la API
-	v1.SetupRoutes(app, authService, userService, productService, categoryService, orderService, productRatingService, favoriteService)
+	v1.SetupRoutes(app, authService, userService, productService, categoryService, orderService, productRatingService, favoriteService, offerService)
 
 	// Endpoint de salud para verificar que el servidor está funcionando
 	app.Get("/api/v1/health", func(c *fiber.Ctx) error {

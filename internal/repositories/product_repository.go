@@ -13,6 +13,8 @@ type ProductRepository interface {
 	FindActive() ([]*models.Product, error)
 	FindPopular(limit int) ([]*models.Product, error)
 	FindRecent(limit int) ([]*models.Product, error)
+	FindWithOffers() ([]*models.Product, error)
+	FindActiveWithOffers(limit int) ([]*models.Product, error)
 	IncrementViewCount(id string) error
 	IncrementPurchaseCount(id string) error
 	Update(product *models.Product) error
@@ -130,3 +132,39 @@ func (r *productRepository) IncrementPurchaseCount(id string) error {
 		Where("product_id = ?", id).
 		Update("purchase_count", gorm.Expr("purchase_count + 1")).Error
 }
+
+// FindWithOffers encuentra todos los productos con sus ofertas activas
+func (r *productRepository) FindWithOffers() ([]*models.Product, error) {
+	var products []*models.Product
+	
+	subquery := r.db.Table("product_offers").
+		Select("DISTINCT product_id").
+		Where("is_active = ? AND start_date <= NOW() AND end_date >= NOW()", true)
+	
+	err := r.db.Preload("Category").
+		Preload("CurrentOffer", "is_active = ? AND start_date <= NOW() AND end_date >= NOW()", true).
+		Where("is_active = ? AND product_id IN (?)", true, subquery).
+		Find(&products).Error
+	
+	return products, err
+}
+
+// FindActiveWithOffers encuentra productos activos con ofertas, con límite
+func (r *productRepository) FindActiveWithOffers(limit int) ([]*models.Product, error) {
+	var products []*models.Product
+	
+	query := r.db.Preload("Category").
+		Preload("CurrentOffer", "is_active = ? AND start_date <= NOW() AND end_date >= NOW()", true).
+		Joins("JOIN product_offers ON products.product_id = product_offers.product_id").
+		Where("products.is_active = ? AND product_offers.is_active = ? AND product_offers.start_date <= NOW() AND product_offers.end_date >= NOW()", 
+			true, true).
+		Group("products.product_id")
+	
+	if limit > 0 {
+		query = query.Limit(limit)
+	}
+	
+	err := query.Find(&products).Error
+	return products, err
+}
+

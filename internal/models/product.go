@@ -31,8 +31,9 @@ type Product struct {
 	UpdatedAt time.Time `gorm:"not null;default:now()" json:"updated_at"`
 
 	// Relaciones
-	Category *Category       `gorm:"foreignKey:CategoryID" json:"category,omitempty"`
-	Ratings  []ProductRating `gorm:"foreignKey:ProductID" json:"ratings,omitempty"`
+	Category    *Category        `gorm:"foreignKey:CategoryID" json:"category,omitempty"`
+	Ratings     []ProductRating  `gorm:"foreignKey:ProductID" json:"ratings,omitempty"`
+	CurrentOffer *ProductOffer   `gorm:"foreignKey:ProductID" json:"current_offer,omitempty"`
 }
 
 // BeforeCreate se ejecuta antes de crear un nuevo producto
@@ -47,4 +48,33 @@ func (p *Product) BeforeCreate(tx *gorm.DB) (err error) {
 // TableName especifica el nombre de la tabla para Product
 func (Product) TableName() string {
 	return "products"
+}
+
+// GetFinalPrice obtiene el precio final considerando ofertas activas
+func (p *Product) GetFinalPrice() float64 {
+	if p.CurrentOffer != nil && p.CurrentOffer.IsCurrentlyActive() {
+		return p.CurrentOffer.CalculateFinalPrice(p.Price)
+	}
+	return p.Price
+}
+
+// GetSavings obtiene el ahorro si hay una oferta activa
+func (p *Product) GetSavings() float64 {
+	if p.CurrentOffer != nil && p.CurrentOffer.IsCurrentlyActive() {
+		return p.CurrentOffer.CalculateSavings(p.Price)
+	}
+	return 0
+}
+
+// GetDiscountPercentage obtiene el porcentaje de descuento para mostrar en UI
+func (p *Product) GetDiscountPercentage() float64 {
+	if p.CurrentOffer != nil && p.CurrentOffer.IsCurrentlyActive() {
+		return p.CurrentOffer.GetDiscountPercentageDisplay(p.Price)
+	}
+	return 0
+}
+
+// IsOnOffer verifica si el producto tiene una oferta activa
+func (p *Product) IsOnOffer() bool {
+	return p.CurrentOffer != nil && p.CurrentOffer.IsCurrentlyActive()
 }
