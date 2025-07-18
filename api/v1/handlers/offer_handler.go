@@ -217,14 +217,45 @@ func (h *OfferHandler) GetProductOffers(c *fiber.Ctx) error {
 			savings := offer.CalculateSavings(offer.Product.Price)
 			discountPercentage := offer.GetDiscountPercentageDisplay(offer.Product.Price)
 
+			// Manejar campos que pueden estar vacíos según el modelo Flutter
+			var packageSize interface{}
+			if offer.Product.PackageSize != "" {
+				packageSize = offer.Product.PackageSize
+			} else {
+				packageSize = nil  // packageSize es nullable en Flutter
+			}
+			
+			var imageURL interface{}
+			if offer.Product.ImageURL != "" {
+				imageURL = offer.Product.ImageURL
+			} else {
+				imageURL = nil  // imageUrl es nullable en Flutter
+			}
+
+			// unit_of_measure NO puede ser null según el modelo Flutter
+			unitOfMeasure := offer.Product.UnitOfMeasure
+			if unitOfMeasure == "" {
+				unitOfMeasure = "unidad"  // Valor por defecto
+			}
+
 			response[i] = fiber.Map{
-				"product_id":      offer.Product.ProductID,
-				"name":            offer.Product.Name,
-				"description":     offer.Product.Description,
-				"price":           offer.Product.Price,
-				"image_url":       offer.Product.ImageURL,
-				"unit_of_measure": offer.Product.UnitOfMeasure,
-				"package_size":    offer.Product.PackageSize,
+				"product_id":       offer.Product.ProductID,
+				"name":             offer.Product.Name,
+				"description":      offer.Product.Description,
+				"price":            offer.Product.Price,
+				"image_url":        imageURL,
+				"unit_of_measure":  unitOfMeasure,  // Siempre string, nunca null
+				"package_size":     packageSize,
+				"stock_quantity":   offer.Product.StockQuantity,
+				"category_id":      offer.Product.CategoryID,
+				"is_active":        offer.Product.IsActive,
+				"view_count":       offer.Product.ViewCount,
+				"purchase_count":   offer.Product.PurchaseCount,
+				"rating_average":   offer.Product.RatingAverage,
+				"rating_count":     offer.Product.RatingCount,
+				"popularity_score": offer.Product.PopularityScore,
+				"created_at":       offer.Product.CreatedAt,
+				"updated_at":       offer.Product.UpdatedAt,
 				"current_offer": fiber.Map{
 					"offer_id":       offer.OfferID,
 					"discount_type":  offer.DiscountType,

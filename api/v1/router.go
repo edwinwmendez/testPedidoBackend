@@ -78,6 +78,7 @@ func setupOfferRoutes(api fiber.Router, offerHandler *handlers.OfferHandler, aut
 	adminOffers.Delete("/offers/:id", offerHandler.DeleteOffer) // DELETE /admin/offers/:id
 
 	// Rutas convenientes para gestionar ofertas por producto
+	adminOffers.Get("/products/:id/offer", offerHandler.GetProductOffer)       // GET /admin/products/:id/offer
 	adminOffers.Post("/products/:id/offer", offerHandler.SetProductOffer)      // POST /admin/products/:id/offer
 	adminOffers.Delete("/products/:id/offer", offerHandler.RemoveProductOffer) // DELETE /admin/products/:id/offer
 }

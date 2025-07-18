@@ -19,6 +19,7 @@ type ProductRepository interface {
 	IncrementPurchaseCount(id string) error
 	Update(product *models.Product) error
 	Delete(id string) error
+	LoadCurrentOffer(product *models.Product) error
 }
 
 type productRepository struct {
@@ -166,5 +167,12 @@ func (r *productRepository) FindActiveWithOffers(limit int) ([]*models.Product, 
 	
 	err := query.Find(&products).Error
 	return products, err
+}
+
+// LoadCurrentOffer carga la oferta activa actual para un producto
+func (r *productRepository) LoadCurrentOffer(product *models.Product) error {
+	return r.db.Preload("CurrentOffer", "is_active = ? AND start_date <= NOW() AND end_date >= NOW()", true).
+		Where("product_id = ?", product.ProductID).
+		First(product).Error
 }
 

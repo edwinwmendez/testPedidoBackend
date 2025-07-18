@@ -18,6 +18,7 @@ var (
 	ErrInvalidOrderStatus   = errors.New("estado de pedido inválido")
 	ErrOutsideBusinessHours = errors.New("fuera del horario de atención")
 	ErrInvalidTransition    = errors.New("transición de estado inválida")
+	ErrInvalidUnitPrice     = errors.New("precio unitario inválido")
 	ErrOrderAlreadyAssigned = errors.New("pedido ya asignado")
 	ErrUserNotFound         = errors.New("usuario no encontrado")
 	ErrInvalidRole          = errors.New("rol de usuario inválido")
@@ -77,19 +78,66 @@ func (s *OrderService) CreateOrder(order *models.Order, items []models.OrderItem
 	// Verificar productos y calcular total
 	var totalAmount float64 = 0
 	for i := range items {
+		log.Printf("[DEBUG] Procesando item %d: ProductID=%s, Quantity=%d, UnitPrice=%.2f", 
+			i, items[i].ProductID.String(), items[i].Quantity, items[i].UnitPrice)
+		
+		// Obtener el producto con su oferta activa
 		product, err := s.productRepo.FindByID(items[i].ProductID.String())
 		if err != nil {
+			log.Printf("[ERROR] Producto no encontrado: %s", items[i].ProductID.String())
 			return nil, ErrProductNotFound
+		}
+		
+		log.Printf("[DEBUG] Producto encontrado: %s, Precio=%.2f, Activo=%v", 
+			product.Name, product.Price, product.IsActive)
+		
+		// Cargar la oferta activa del producto si existe
+		if err := s.productRepo.LoadCurrentOffer(product); err != nil {
+			log.Printf("[DEBUG] No se pudo cargar oferta para producto %s: %v", product.ProductID, err)
+			// Si no se puede cargar la oferta, continuar sin ella
+			// (no es un error crítico)
 		}
 
 		if !product.IsActive {
+			log.Printf("[ERROR] Producto inactivo: %s", product.ProductID)
 			return nil, ErrProductInactive
 		}
 
-		// Establecer precio unitario del producto al momento de la compra
-		items[i].UnitPrice = product.Price
+		// Validar que el precio unitario del frontend sea válido
+		if items[i].UnitPrice <= 0 {
+			log.Printf("[ERROR] Precio unitario inválido (<=0): %.2f", items[i].UnitPrice)
+			return nil, ErrInvalidUnitPrice
+		}
+		
+		// Calcular el precio correcto considerando ofertas activas
+		expectedPrice := product.Price
+		if product.CurrentOffer != nil && product.CurrentOffer.IsCurrentlyActive() {
+			expectedPrice = product.CurrentOffer.CalculateFinalPrice(product.Price)
+			log.Printf("[DEBUG] Oferta activa encontrada: OfferID=%s, Tipo=%s, Valor=%.2f, Precio original=%.2f, Precio con oferta=%.2f", 
+				product.CurrentOffer.OfferID.String(), product.CurrentOffer.DiscountType, product.CurrentOffer.DiscountValue, product.Price, expectedPrice)
+		} else {
+			log.Printf("[DEBUG] No hay oferta activa para el producto %s", product.ProductID)
+		}
+		
+		// Validar que el precio del frontend coincida con el precio esperado
+		// Permitir una pequeña tolerancia para diferencias de redondeo (0.01)
+		tolerance := 0.01
+		log.Printf("[DEBUG] Validación de precio: Frontend=%.2f, Esperado=%.2f, Tolerancia=%.2f", 
+			items[i].UnitPrice, expectedPrice, tolerance)
+		
+		if items[i].UnitPrice < expectedPrice-tolerance || items[i].UnitPrice > expectedPrice+tolerance {
+			log.Printf("[ERROR] Precio unitario inválido: Frontend=%.2f, Esperado=%.2f (rango: %.2f - %.2f)", 
+				items[i].UnitPrice, expectedPrice, expectedPrice-tolerance, expectedPrice+tolerance)
+			return nil, ErrInvalidUnitPrice
+		}
+		
+		log.Printf("[DEBUG] Precio validado correctamente para producto %s", product.ProductID)
+		
+		// Usar el precio que envía el frontend (ya incluye descuentos)
 		items[i].Subtotal = float64(items[i].Quantity) * items[i].UnitPrice
 		totalAmount += items[i].Subtotal
+		
+		log.Printf("[DEBUG] Subtotal calculado: %.2f, Total acumulado: %.2f", items[i].Subtotal, totalAmount)
 	}
 
 	order.TotalAmount = totalAmount

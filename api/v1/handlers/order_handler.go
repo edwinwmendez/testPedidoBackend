@@ -39,8 +39,9 @@ type CreateOrderRequest struct {
 
 // OrderItemRequest estructura para los ítems de un pedido
 type OrderItemRequest struct {
-	ProductID string `json:"product_id" validate:"required,uuid"`
-	Quantity  int    `json:"quantity" validate:"required,min=1"`
+	ProductID string  `json:"product_id" validate:"required,uuid"`
+	Quantity  int     `json:"quantity" validate:"required,min=1"`
+	UnitPrice float64 `json:"unit_price" validate:"required,min=0"`
 }
 
 // UpdateOrderStatusRequest estructura para actualizar el estado de un pedido
@@ -127,6 +128,7 @@ func (h *OrderHandler) CreateOrder(c *fiber.Ctx) error {
 		orderItems = append(orderItems, models.OrderItem{
 			ProductID: productID,
 			Quantity:  item.Quantity,
+			UnitPrice: item.UnitPrice,
 		})
 	}
 
@@ -149,7 +151,13 @@ func (h *OrderHandler) CreateOrder(c *fiber.Ctx) error {
 			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 				"error": "Uno o más productos no están disponibles",
 			})
+		case services.ErrInvalidUnitPrice:
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": "Precio unitario inválido",
+			})
 		default:
+			// Loggear el error para debugging
+			log.Printf("Error al crear pedido: %v", err)
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"error": "Error al crear el pedido",
 			})
